@@ -16,7 +16,14 @@ extension ViewController: ARSCNViewDelegate{
         //1. Check Our Frame Is Valid & That We Have Received Our Raw Feature Points
         guard let currentFrame = self.augmentedRealitySession.currentFrame,
              let featurePointsArray = currentFrame.rawFeaturePoints?.points else { return }
-        
+        // Project all of the feature points (expressed in the global coordinate system) to pixels on the captured image
+        let projectedFeaturePoints = featurePointsArray.map({feature in currentFrame.camera.projectPoint(feature, orientation: .landscapeRight, viewportSize: currentFrame.camera.imageResolution)})
+        for featurePoint in featurePointsArray{
+            let cameraCoords = currentFrame.camera.transform.inverse * simd_float4(featurePoint, 1)
+            //let pixelCoords = renderer.projectPoint(SCNVector3(featurePoint))
+            // print("Global: \(featurePoint), Camera: \(cameraCoords), Pixel: \(pixelCoords)")
+        }
+
         //2. Visualize The Feature Points
         visualizeFeaturePointsIn(featurePointsArray)
         
@@ -45,8 +52,8 @@ extension ViewController: ARSCNViewDelegate{
         //1. Remove Any Existing Nodes
         self.augmentedRealityView.scene.rootNode.enumerateChildNodes { (featurePoint, _) in
             
-            featurePoint.geometry = nil
-            featurePoint.removeFromParentNode()
+           // featurePoint.geometry = nil
+           // featurePoint.removeFromParentNode()
         }
         
         //2. Update Our Label Which Displays The Count Of Feature Points
@@ -60,7 +67,7 @@ extension ViewController: ARSCNViewDelegate{
             //Clone The SphereNode To Reduce CPU
             let clone = sphereNode.clone()
             clone.position = SCNVector3(pointLocation.x, pointLocation.y, pointLocation.z)
-            self.augmentedRealityView.scene.rootNode.addChildNode(clone)
+           // self.augmentedRealityView.scene.rootNode.addChildNode(clone)
         }
 
     }
@@ -114,7 +121,7 @@ class ViewController: UIViewController {
     func generateNode(){
         sphereNode = SCNNode()
         let sphereGeometry = SCNSphere(radius: 0.001)
-        sphereGeometry.firstMaterial?.diffuse.contents = UIColor.cyan
+        sphereGeometry.firstMaterial?.diffuse.contents = UIColor.green
         sphereNode.geometry = sphereGeometry
     }
 
@@ -128,6 +135,7 @@ class ViewController: UIViewController {
         //1. Set The AR Session
         augmentedRealityView.session = augmentedRealitySession
         augmentedRealityView.delegate = self
+        augmentedRealityView.debugOptions = [.showWorldOrigin]
         
         configuration.planeDetection = [planeDetection(.None)]
         augmentedRealitySession.run(configuration, options: runOptions(.ResetAndRemove))
