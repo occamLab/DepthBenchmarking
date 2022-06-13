@@ -20,8 +20,6 @@ extension ViewController: ARSCNViewDelegate{
         let projectedFeaturePoints = featurePointsArray.map({feature in currentFrame.camera.projectPoint(feature, orientation: .landscapeRight, viewportSize: currentFrame.camera.imageResolution)})
         for featurePoint in featurePointsArray{
             let cameraCoords = currentFrame.camera.transform.inverse * simd_float4(featurePoint, 1)
-            //let pixelCoords = renderer.projectPoint(SCNVector3(featurePoint))
-            // print("Global: \(featurePoint), Camera: \(cameraCoords), Pixel: \(pixelCoords)")
         }
 
         //2. Visualize The Feature Points
