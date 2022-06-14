@@ -3,10 +3,12 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 50;
+	objectVersion = 52;
 	objects = {
 
 /* Begin PBXBuildFile section */
+		17227B302857DA8900823B0D /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 17227B2F2857DA8900823B0D /* GoogleService-Info.plist */; };
+		178DF0242858C7A000A38A7C /* ARDataLogger in Frameworks */ = {isa = PBXBuildFile; productRef = 178DF0232858C7A000A38A7C /* ARDataLogger */; };
 		AF9B657820AE4A140076666A /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF9B657720AE4A140076666A /* AppDelegate.swift */; };
 		AF9B657A20AE4A140076666A /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF9B657920AE4A140076666A /* ViewController.swift */; };
 		AF9B657D20AE4A140076666A /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = AF9B657B20AE4A140076666A /* Main.storyboard */; };
@@ -16,6 +18,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		17227B2F2857DA8900823B0D /* GoogleService-Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 		AF9B657420AE4A140076666A /* ARPoints.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ARPoints.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		AF9B657720AE4A140076666A /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		AF9B657920AE4A140076666A /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
@@ -31,6 +34,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				178DF0242858C7A000A38A7C /* ARDataLogger in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -40,6 +44,7 @@
 		AF9B656B20AE4A140076666A = {
 			isa = PBXGroup;
 			children = (
+				17227B2F2857DA8900823B0D /* GoogleService-Info.plist */,
 				AF9B657620AE4A140076666A /* ARPoints */,
 				AF9B657520AE4A140076666A /* Products */,
 			);
@@ -91,6 +96,9 @@
 			dependencies = (
 			);
 			name = ARPoints;
+			packageProductDependencies = (
+				178DF0232858C7A000A38A7C /* ARDataLogger */,
+			);
 			productName = ARPoints;
 			productReference = AF9B657420AE4A140076666A /* ARPoints.app */;
 			productType = "com.apple.product-type.application";
@@ -120,6 +128,14 @@
 				Base,
 			);
 			mainGroup = AF9B656B20AE4A140076666A;
+			packageReferences = (
+				17227B282857DA3900823B0D /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
+				17919BA52858C343003D8D20 /* XCRemoteSwiftPackageReference "ARDataLogger" */,
+				178DF01F2858C54200A38A7C /* XCRemoteSwiftPackageReference "ARDataLogger" */,
+				178DF0202858C5A600A38A7C /* XCRemoteSwiftPackageReference "ARDataLogger" */,
+				178DF0212858C6ED00A38A7C /* XCRemoteSwiftPackageReference "ARDataLogger" */,
+				178DF0222858C7A000A38A7C /* XCRemoteSwiftPackageReference "ARDataLogger" */,
+			);
 			productRefGroup = AF9B657520AE4A140076666A /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -135,6 +151,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				AF9B658220AE4A150076666A /* LaunchScreen.storyboard in Resources */,
+				17227B302857DA8900823B0D /* GoogleService-Info.plist in Resources */,
 				AF9B657F20AE4A150076666A /* Assets.xcassets in Resources */,
 				AF9B657D20AE4A140076666A /* Main.storyboard in Resources */,
 			);
@@ -302,7 +319,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = co.uk.blackMirrorz.ARPoints;
+				PRODUCT_BUNDLE_IDENTIFIER = edu.occamlab.depthbenchmarking;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 1;
@@ -320,7 +337,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = co.uk.blackMirrorz.ARPoints;
+				PRODUCT_BUNDLE_IDENTIFIER = edu.occamlab.depthbenchmarking;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 1;
@@ -349,6 +366,65 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		17227B282857DA3900823B0D /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/firebase/firebase-ios-sdk.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 9.0.0;
+			};
+		};
+		178DF01F2858C54200A38A7C /* XCRemoteSwiftPackageReference "ARDataLogger" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/occamLab/ARDataLogger";
+			requirement = {
+				branch = main;
+				kind = branch;
+			};
+		};
+		178DF0202858C5A600A38A7C /* XCRemoteSwiftPackageReference "ARDataLogger" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/occamLab/ARDataLogger";
+			requirement = {
+				branch = main;
+				kind = branch;
+			};
+		};
+		178DF0212858C6ED00A38A7C /* XCRemoteSwiftPackageReference "ARDataLogger" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/occamLab/ARDataLogger";
+			requirement = {
+				branch = main;
+				kind = branch;
+			};
+		};
+		178DF0222858C7A000A38A7C /* XCRemoteSwiftPackageReference "ARDataLogger" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/occamLab/ARDataLogger";
+			requirement = {
+				branch = main;
+				kind = branch;
+			};
+		};
+		17919BA52858C343003D8D20 /* XCRemoteSwiftPackageReference "ARDataLogger" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/occamLab/ARDataLogger";
+			requirement = {
+				branch = main;
+				kind = branch;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		178DF0232858C7A000A38A7C /* ARDataLogger */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 17919BA52858C343003D8D20 /* XCRemoteSwiftPackageReference "ARDataLogger" */;
+			productName = ARDataLogger;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = AF9B656C20AE4A140076666A /* Project object */;
 }

@@ -8,9 +8,11 @@
 
 import UIKit
 import ARKit
+import FirebaseStorage
+import Foundation
+import ARDataLogger
 
 extension ViewController: ARSCNViewDelegate{
-    
     func renderer(_ renderer: SCNSceneRenderer, updateAtTime time: TimeInterval) {
         
         //1. Check Our Frame Is Valid & That We Have Received Our Raw Feature Points
@@ -21,7 +23,25 @@ extension ViewController: ARSCNViewDelegate{
         for featurePoint in featurePointsArray{
             let cameraCoords = currentFrame.camera.transform.inverse * simd_float4(featurePoint, 1)
         }
+        
+        if !sentData {
+            sentData = true
+            let fileType = StorageMetadata()
+            fileType.contentType = "application/json"
+            do {
+                let jsonData: [String: Any] = ["projectedFeaturePoints": projectedFeaturePoints.map({[$0.x, $0.y]}), "featurePoints": featurePointsArray.map({[$0.x, $0.y, $0.z]})]
+                let featurePointsData = try JSONSerialization.data(withJSONObject: jsonData, options: [])
+                let ref = Storage.storage().reference().child("helloworld.json")
+                ref.putData(featurePointsData, metadata: fileType) { (metadata, error) in
+                    print("checking to see if it worked \(error) \(metadata)")
+                }
+                //(with: ["featurePoints": [[3.0, 2.0], [3.0, 3.0]]], options: [])
+            } catch {
+                print("error occurred")
+            }
+        }
 
+        
         //2. Visualize The Feature Points
         visualizeFeaturePointsIn(featurePointsArray)
         
@@ -46,7 +66,6 @@ extension ViewController: ARSCNViewDelegate{
     ///
     /// - Parameter featurePointsArray: [vector_float3]
     func visualizeFeaturePointsIn(_ featurePointsArray: [vector_float3]){
-        
         //1. Remove Any Existing Nodes
         self.augmentedRealityView.scene.rootNode.enumerateChildNodes { (featurePoint, _) in
             
@@ -73,7 +92,8 @@ extension ViewController: ARSCNViewDelegate{
 }
 
 class ViewController: UIViewController {
-
+    var sentData = false
+    var lastFrameUploadTime = Date()
     //1. Create A Reference To Our ARSCNView In Our Storyboard Which Displays The Camera Feed
     @IBOutlet weak var augmentedRealityView: ARSCNView!
     
@@ -129,7 +149,8 @@ class ViewController: UIViewController {
     
     /// Sets Up The ARSession
     func setupARSession(){
-        
+        ARDataLogger.ARLogger.shared.dataDir = "depth_benchmarking"
+        ARDataLogger.ARLogger.shared.startTrial()
         //1. Set The AR Session
         augmentedRealityView.session = augmentedRealitySession
         augmentedRealityView.delegate = self
@@ -137,6 +158,7 @@ class ViewController: UIViewController {
         
         configuration.planeDetection = [planeDetection(.None)]
         augmentedRealitySession.run(configuration, options: runOptions(.ResetAndRemove))
+        augmentedRealitySession.delegate = self
         
         self.rawFeaturesLabel.text = ""
        
@@ -144,3 +166,25 @@ class ViewController: UIViewController {
     }
 }
 
+extension ViewController: ARSessionDelegate {
+    func session(_ session: ARSession, didUpdate frame: ARFrame) {
+        ARDataLogger.ARLogger.shared.session(session, didUpdate: frame)
+        if -lastFrameUploadTime.timeIntervalSinceNow > 2 {
+            lastFrameUploadTime = Date()
+            ARDataLogger.ARLogger.shared.log(frame: frame, withType: "depth_benchmarking", withMeshLoggingBehavior: .none)
+        }
+    }
+
+    
+    func session(_ session: ARSession, didAdd anchors: [ARAnchor]) {
+        ARDataLogger.ARLogger.shared.session(session, didAdd: anchors)
+    }
+    
+    func session(_ session: ARSession, didUpdate anchors: [ARAnchor]) {
+        ARDataLogger.ARLogger.shared.session(session, didUpdate: anchors)
+    }
+
+    func session(_ session: ARSession, didRemove anchors: [ARAnchor]) {
+        ARDataLogger.ARLogger.shared.session(session, didRemove: anchors)
+    }
+}
