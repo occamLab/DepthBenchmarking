@@ -9,6 +9,7 @@
 import UIKit
 import ARKit
 import FirebaseStorage
+import FirebaseAuth
 import Foundation
 import ARDataLogger
 
@@ -149,6 +150,7 @@ class ViewController: UIViewController {
     
     /// Sets Up The ARSession
     func setupARSession(){
+        ARDataLogger.ARLogger.shared.doAynchronousUploads = false
         ARDataLogger.ARLogger.shared.dataDir = "depth_benchmarking"
         ARDataLogger.ARLogger.shared.startTrial()
         //1. Set The AR Session
