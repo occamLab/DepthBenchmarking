@@ -33,4 +33,11 @@ for row in camera_fp:
 
 calc_projected_fp = np.array(calc_projected_fp)
 
-print(projected_fp[0], calc_projected_fp[0])
+for row in projected_fp:
+    pixel_x = round(row[0])
+    pixel_y = round(row[1])
+    frame[pixel_x - 4: pixel_x + 4, pixel_y - 4: pixel_y + 4] = [51, 14, 247]
+
+cv.imshow("frame", frame)
+cv.waitKey(0)
+cv.destroyAllWindows()
