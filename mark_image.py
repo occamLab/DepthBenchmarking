@@ -23,5 +23,14 @@ offset_x = data["intrinsics"][6]
 offset_y = data["intrinsics"][7]
 
 phone_fp = inv(pose) @ raw_fp
-camera_fp = np.array((phone_fp[0], -phone_fp[1], -phone_fp[2]))
-print(camera_fp)
+camera_fp = np.array((phone_fp[0], -phone_fp[1], -phone_fp[2])).T
+
+calc_projected_fp = []
+for row in camera_fp:
+    pixel_x = row[0] * focal_length / row[2] + offset_x + 0.5
+    pixel_y = row[1] * focal_length / row[2] + offset_y + 0.5
+    calc_projected_fp.append([pixel_x, pixel_y])
+
+calc_projected_fp = np.array(calc_projected_fp)
+
+print(projected_fp[0], calc_projected_fp[0])
