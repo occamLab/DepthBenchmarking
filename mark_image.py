@@ -38,6 +38,4 @@ for row in projected_fp:
     pixel_y = round(row[1])
     frame[pixel_x - 4: pixel_x + 4, pixel_y - 4: pixel_y + 4] = [51, 14, 247]
 
-cv.imshow("frame", frame)
-cv.waitKey(0)
-cv.destroyAllWindows()
+cv.imwrite("featurepoints.jpg", frame)
