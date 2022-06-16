@@ -27,15 +27,14 @@ offset_y = data["intrinsics"][7]
 phone_fp = inv(pose) @ raw_fp
 camera_fp = np.array((phone_fp[0], -phone_fp[1], -phone_fp[2])).T
 
-print(camera_fp)
-
 ar_depths = []
 calc_projected_fp = []
 for row in camera_fp:
     pixel_x = row[0] * focal_length / row[2] + offset_x + 0.5
     pixel_y = row[1] * focal_length / row[2] + offset_y + 0.5
-    if 0 <= pixel_x <= frame.shape[0] and 0 <= pixel_y <= frame.shape[1]:
-        ar_depths.append(row[2] - focal_length)
+    if 0 <= round(pixel_x) < frame.shape[0] \
+        and 0 <= round(pixel_y) < frame.shape[1]:
+        ar_depths.append(row[2])
     calc_projected_fp.append([pixel_x, pixel_y])
 
 calc_projected_fp = np.array(calc_projected_fp)
@@ -46,7 +45,7 @@ inverse_depth = np.array(\
 midas_depth = np.reciprocal(inverse_depth.copy())
 
 plt.figure()
-plt.pcolor(midas_depth, cmap="PuBu")
+plt.pcolor(midas_depth, cmap="PuRd_r")
 plt.colorbar()
 plt.title("Visualization of MiDaS Depths")
 
@@ -54,7 +53,7 @@ midas_depths_at_feature_points = []
 for row in projected_fp:
     pixel_x = row[0]
     pixel_y = row[1]
-    if 0 <= pixel_x <= frame.shape[0] and 0 <= pixel_y <= frame.shape[1]:
+    if 0 <= pixel_x < frame.shape[0] and 0 <= pixel_y < frame.shape[1]:
         midas_depths_at_feature_points.append(midas_depth[pixel_x, pixel_y])
     cv.circle(frame, (pixel_x, pixel_y), 5, (51, 14, 247), -1)
 
