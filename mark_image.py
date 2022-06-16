@@ -5,10 +5,12 @@ points on the image.
 
 import json
 import numpy as np
+import matplotlib.pyplot as plt
 import cv2 as cv
 from scipy.linalg import inv
+from utils import read_pfm
 
-frame = cv.imread("frame.jpg")
+frame = cv.imread("input/frame.jpg")
 
 with open("framemetadata.json") as my_file:
     data = json.load(my_file)
@@ -36,6 +38,16 @@ calc_projected_fp = np.array(calc_projected_fp)
 for row in projected_fp:
     pixel_x = round(row[0])
     pixel_y = round(row[1])
-    frame[pixel_x - 4: pixel_x + 4, pixel_y - 4: pixel_y + 4] = [51, 14, 247]
+    # use opencv circle
+    frame[pixel_y - 4: pixel_y + 4, pixel_x - 4: pixel_x + 4] = [51, 14, 247]
 
-cv.imwrite("featurepoints.jpg", frame)
+cv.imwrite("output/featurepoints.jpg", frame)
+
+# change path to acutal if using a different computer
+inverse_depth = np.array(\
+    read_pfm("/Users/occamlab/Documents/ARPointCloud/output/frame.pfm")[0])
+midas_depth = np.reciprocal(inverse_depth.copy())
+
+plt.pcolor(midas_depth)
+plt.colorbar()
+plt.show()
