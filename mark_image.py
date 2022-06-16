@@ -19,7 +19,7 @@ lidar_depth = np.array(data["depthData"])
 pose = np.reshape(data["pose"], (4,4)).T
 raw_fp = np.array(data["rawFeaturePoints"])
 raw_fp = np.hstack((raw_fp, np.ones((raw_fp.shape[0], 1)))).T
-projected_fp = np.array(data["projectedFeaturePoints"])
+projected_fp = np.around(data["projectedFeaturePoints"]).astype(int)
 focal_length = data["intrinsics"][0]
 offset_x = data["intrinsics"][6]
 offset_y = data["intrinsics"][7]
@@ -35,14 +35,6 @@ for row in camera_fp:
 
 calc_projected_fp = np.array(calc_projected_fp)
 
-for row in projected_fp:
-    pixel_x = round(row[0])
-    pixel_y = round(row[1])
-    # use opencv circle
-    frame[pixel_y - 4: pixel_y + 4, pixel_x - 4: pixel_x + 4] = [51, 14, 247]
-
-cv.imwrite("output/featurepoints.jpg", frame)
-
 # change path to acutal if using a different computer
 inverse_depth = np.array(\
     read_pfm("/Users/occamlab/Documents/ARPointCloud/output/frame.pfm")[0])
@@ -51,3 +43,11 @@ midas_depth = np.reciprocal(inverse_depth.copy())
 plt.pcolor(midas_depth)
 plt.colorbar()
 plt.show()
+
+for row in projected_fp:
+    pixel_x = row[0]
+    pixel_y = row[1]
+    cv.circle(frame, (pixel_x, pixel_y), 5, (51, 14, 247), -1)
+    
+
+cv.imwrite("output/featurepoints.jpg", frame)
