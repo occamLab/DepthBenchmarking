@@ -156,7 +156,7 @@ class ViewController: UIViewController {
         //1. Set The AR Session
         augmentedRealityView.session = augmentedRealitySession
         augmentedRealityView.delegate = self
-        augmentedRealityView.debugOptions = [.showWorldOrigin]
+        augmentedRealityView.debugOptions = [.showFeaturePoints]
         
         configuration.planeDetection = [planeDetection(.None)]
         augmentedRealitySession.run(configuration, options: runOptions(.ResetAndRemove))
