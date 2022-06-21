@@ -107,7 +107,7 @@ class ViewController: UIViewController {
     
     //3. Create Our ARWorld Tracking Configuration
     let configuration = ARWorldTrackingConfiguration()
-    
+  
     //4. Create Our Session
     let augmentedRealitySession = ARSession()
     
@@ -159,6 +159,9 @@ class ViewController: UIViewController {
         augmentedRealityView.debugOptions = [.showFeaturePoints]
         
         configuration.planeDetection = [planeDetection(.None)]
+        if ARWorldTrackingConfiguration.supportsFrameSemantics(.sceneDepth) {
+            configuration.frameSemantics = .sceneDepth
+        }
         augmentedRealitySession.run(configuration, options: runOptions(.ResetAndRemove))
         augmentedRealitySession.delegate = self
         
