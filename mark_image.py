@@ -6,6 +6,7 @@ points on the image.
 import json
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.colors as colors
 import cv2 as cv
 from scipy.linalg import inv
 from utils import read_pfm
@@ -40,12 +41,11 @@ for row in camera_fp:
 calc_projected_fp = np.array(calc_projected_fp)
 
 # change path to acutal if using a different computer
-inverse_depth = np.array(\
-    read_pfm("/Users/occamlab/Documents/ARPointCloud/output/frame.pfm")[0])
+inverse_depth = np.array(read_pfm("/Users/occamlab/Documents/ARPointCloud/output/frame.pfm")[0])
 midas_depth = np.reciprocal(inverse_depth.copy())
 
 plt.figure()
-plt.pcolor(midas_depth, cmap="PuRd_r")
+plt.pcolor(midas_depth, norm=colors.LogNorm(), cmap="PuRd_r")
 plt.colorbar()
 plt.title("Visualization of MiDaS Depths")
 
