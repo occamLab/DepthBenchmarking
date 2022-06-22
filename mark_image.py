@@ -10,6 +10,7 @@ import matplotlib.colors as colors
 import cv2 as cv
 from scipy.linalg import inv
 from utils import read_pfm
+import pyvista as pv
 
 frame = cv.imread("input/frame.jpg")
 
@@ -39,9 +40,23 @@ for row in camera_fp:
     calc_projected_fp.append([pixel_x, pixel_y])
 
 calc_projected_fp = np.array(calc_projected_fp)
+#Make Point Cloud 
+point_cloud = []
+for row in lidar_depth:
+    x = row[0]* row[3]
+    y = row[1] * row[3]
+    z = row[2] * row[3]
+    
+    point_cloud.append([x,y,z])
+points = np.array(point_cloud)
+pv_point_cloud = pv.PolyData(points)
+print(points)
+print(pv_point_cloud)
+print(np.allclose(points, pv_point_cloud.points))
+pv_point_cloud.plot(render_points_as_spheres=True)
 
 # change path to acutal if using a different computer
-inverse_depth = np.array(read_pfm("/Users/occamlab/Documents/ARPointCloud/output/frame.pfm")[0])
+inverse_depth = np.array(read_pfm("/Users/angrocki/Desktop/SummerResearch/DepthBenchmarking/output/frame.pfm")[0])
 midas_depth = np.reciprocal(inverse_depth.copy())
 
 plt.figure()
