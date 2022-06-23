@@ -48,7 +48,8 @@ for row in camera_fp:
 calc_projected_fp = np.array(calc_projected_fp)
 
 # change path to acutal if using a different computer
-inverse_depth = np.array(read_pfm("/Users/occamlab/Documents/ARPointCloud/output/frame.pfm")[0])
+inverse_depth = np.array(read_pfm(\
+    "/Users/occamlab/Documents/ARPointCloud/output/frame.pfm")[0])
 midas_depth = np.reciprocal(inverse_depth.copy())
 
 # create a figure representing the MiDaS depths
@@ -81,7 +82,7 @@ for row in lidar_data:
 pv_point_cloud = pv.PolyData(lidar_depth)
 pv_point_cloud.plot(render_points_as_spheres=True)
 
-# extract just 
+# extract depth in meters from LiDAR data
 lidar_depth = np.reshape(lidar_depth, (256, 192, 3))[:, :, 2].T * -1
 
 # create a figure representing the LiDAR depths
@@ -94,17 +95,21 @@ plt.title("LiDAR Depth")
 midas_extracted = []
 for i in range(lidar_depth.shape[0]):
     for j in range(lidar_depth.shape[1]):
-        midas_extracted.append(midas_depth[round(3.75 + 7.5 * i), round(3.75 + 7.5 * j)])
+        midas_extracted.append(midas_depth[round(3.75 + 7.5 * i), \
+            round(3.75 + 7.5 * j)])
 midas_extracted = np.reshape(midas_extracted, (192, 256))
 
 # print out correlations between LiDAR and MiDaS data
-print(np.corrcoef(np.ravel(lidar_depth), np.ravel(midas_extracted)))
+print("Correlation:", np.corrcoef(np.ravel(lidar_depth), \
+    np.ravel(midas_extracted))[0][1])
+print("<5 Corr:", np.corrcoef(np.ravel(lidar_depth[lidar_depth<5]), \
+    np.ravel(midas_extracted[lidar_depth<5]))[0][1])
 print(spearmanr(np.ravel(lidar_depth), np.ravel(midas_extracted)))
 
 # create a plot comparing LiDAR vs MiDaS and Feature Points vs MiDaS
 plt.figure()
 plt.scatter(lidar_depth, midas_extracted, label="LiDAR", s=0.5, alpha=0.5)
-plt.scatter(ar_depths, midas_depths_at_feature_points, c="r", label="Feature Points")
+plt.scatter(ar_depths, midas_depths_at_feature_points, c="r", label="ARKit FP")
 plt.title("iPhone Depth vs. MiDaS Depth")
 plt.legend()
 plt.xlabel("iPhone Depth")
@@ -112,7 +117,7 @@ plt.ylabel("MiDaS Depth")
 
 # create a plot of the LiDAR confidence levels
 plt.figure()
-plt.pcolor(lidar_confidence, cmap="Greys_r")
+plt.pcolor(lidar_confidence, cmap="RdYlGn")
 plt.colorbar()
 plt.title("LiDAR Confidence")
 
