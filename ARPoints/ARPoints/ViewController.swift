@@ -19,29 +19,6 @@ extension ViewController: ARSCNViewDelegate{
         //1. Check Our Frame Is Valid & That We Have Received Our Raw Feature Points
         guard let currentFrame = self.augmentedRealitySession.currentFrame,
              let featurePointsArray = currentFrame.rawFeaturePoints?.points else { return }
-        // Project all of the feature points (expressed in the global coordinate system) to pixels on the captured image
-        let projectedFeaturePoints = featurePointsArray.map({feature in currentFrame.camera.projectPoint(feature, orientation: .landscapeRight, viewportSize: currentFrame.camera.imageResolution)})
-        for featurePoint in featurePointsArray{
-            let cameraCoords = currentFrame.camera.transform.inverse * simd_float4(featurePoint, 1)
-        }
-        
-        if !sentData {
-            sentData = true
-            let fileType = StorageMetadata()
-            fileType.contentType = "application/json"
-            do {
-                let jsonData: [String: Any] = ["projectedFeaturePoints": projectedFeaturePoints.map({[$0.x, $0.y]}), "featurePoints": featurePointsArray.map({[$0.x, $0.y, $0.z]})]
-                let featurePointsData = try JSONSerialization.data(withJSONObject: jsonData, options: [])
-                let ref = Storage.storage().reference().child("helloworld.json")
-                ref.putData(featurePointsData, metadata: fileType) { (metadata, error) in
-                    print("checking to see if it worked \(error) \(metadata)")
-                }
-                //(with: ["featurePoints": [[3.0, 2.0], [3.0, 3.0]]], options: [])
-            } catch {
-                print("error occurred")
-            }
-        }
-
         
         //2. Visualize The Feature Points
         visualizeFeaturePointsIn(featurePointsArray)
