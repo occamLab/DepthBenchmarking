@@ -8,9 +8,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
 import cv2 as cv
+import pyvista as pv
 from scipy.linalg import inv
 from utils import read_pfm
-import pyvista as pv
 
 # load captured frame
 frame = cv.imread("input/frame.jpg")
@@ -20,7 +20,7 @@ with open("framemetadata.json") as my_file:
     data = json.load(my_file)
 
 # extract data from the JSON file
-lidar_depth = np.array(data["depthData"])
+lidar_data = np.array(data["depthData"])
 pose = np.reshape(data["pose"], (4,4)).T
 raw_fp = np.array(data["rawFeaturePoints"])
 raw_fp = np.hstack((raw_fp, np.ones((raw_fp.shape[0], 1)))).T
@@ -66,25 +66,41 @@ cv.imwrite("output/featurepoints.jpg", frame)
 
 plt.figure()
 plt.scatter(ar_depths, midas_depths_at_feature_points)
+plt.title("AR Depth vs. MiDaS Depth")
 plt.xlabel("AR Depth")
 plt.ylabel("MiDaS Depth")
 
 # visualize LiDAR depth data
-point_cloud = []
-for row in lidar_depth:
+lidar_depth = []
+for row in lidar_data:
     x = row[0]* row[3]
     y = row[1] * row[3]
     z = row[2] * row[3]
-    point_cloud.append([x,y,z])
+    lidar_depth.append([x,y,z])
 
-pv_point_cloud = pv.PolyData(point_cloud)
+pv_point_cloud = pv.PolyData(lidar_depth)
 pv_point_cloud.plot(render_points_as_spheres=True)
 
-point_cloud = np.reshape(point_cloud, (256, 192, 3))
+lidar_depth = np.reshape(lidar_depth, (256, 192, 3))[:, :, 2].T * -1
 
 plt.figure()
-plt.pcolor(point_cloud[:, :, 2].T, cmap="PuBu_r")
+plt.pcolor(lidar_depth, cmap="PuBu_r")
 plt.colorbar()
 plt.title("LiDAR Depth")
+
+midas_extracted = []
+for i in range(lidar_depth.shape[0]):
+    for j in range(lidar_depth.shape[1]):
+        midas_extracted.append(midas_depth[round(3.75 + 7.5 * i), round(3.75 + 7.5 * j)])
+
+midas_extracted = np.reshape(midas_extracted, (256, 192))
+
+plt.figure()
+plt.scatter(lidar_depth, midas_extracted, label="LiDAR")
+plt.scatter(ar_depths, midas_depths_at_feature_points, c="r", label="Feature Points")
+plt.title("iPhone Depth vs. MiDaS Depth")
+plt.legend()
+plt.xlabel("iPhone Depth")
+plt.ylabel("MiDaS Depth")
 
 plt.show()
