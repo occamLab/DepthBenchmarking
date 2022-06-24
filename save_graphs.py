@@ -8,7 +8,7 @@ from scipy.stats import spearmanr
 from utils import read_pfm
 
 user = "HccdFYqmqETaJltQbAe19bnyk2e2"
-trail = "6CCBDFF7-057E-4FB6-A00F-98E659CE5A88"
+trial = "6CCBDFF7-057E-4FB6-A00F-98E659CE5A88"
 frame_number = "0009"
 data_path = "/Users/angrocki/Desktop/DepthData/depth_benchmarking/"
 project_path = "/Users/angrocki/Desktop/SummerResearch/DepthBenchmarking/"
