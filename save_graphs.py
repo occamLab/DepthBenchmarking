@@ -10,11 +10,15 @@ from utils import read_pfm
 user = "HccdFYqmqETaJltQbAe19bnyk2e2"
 trial = "6CCBDFF7-057E-4FB6-A00F-98E659CE5A88"
 frame_number = "0009"
-data_path = "/Users/angrocki/Desktop/DepthData/depth_benchmarking/"
-project_path = "/Users/angrocki/Desktop/SummerResearch/DepthBenchmarking/"
-midas_input_path = project_path+ "input/"
-midas_output_path = project_path + "output/"
+data_path = "/Users/angrocki/Desktop/DepthData/depth_benchmarking"
+project_path = "/Users/angrocki/Desktop/SummerResearch/DepthBenchmarking"
+midas_input_path = project_path+ "/input/"
+midas_output_path = project_path + "/output/"
 name = user[0:3] + trial[0:3] + frame_number
+
+# check if graph directory exists
+if not os.path.exists(f"{data_path}/{user}/{trial}/data"):
+    os.makedirs(f"{data_path}/{user}/{trial}/data")
 
 # load captured frame
 frame = cv.imread(midas_input_path + "frame.jpg")
@@ -62,7 +66,7 @@ for row in projected_fp:
 
 # draw circles on the input image
 cv.imwrite(f"{data_path}/{user}/{trial}/{frame_number}/featurepoints_{name}.jpg", frame)
-
+cv.imwrite(f"{data_path}/{user}/{trial}/data/featurepoints_{name}.jpg", frame)
 # scale LiDAR data
 lidar_depth = []
 for row in lidar_data:
@@ -85,7 +89,8 @@ correlation = np.corrcoef(np.ravel(lidar_depth), np.ravel(midas_extracted))
 spearman = spearmanr(np.ravel(lidar_depth), np.ravel(midas_extracted))
 with open(f"{data_path}/{user}/{trial}/{frame_number}/correlation.txt", "w") as f:
     f.write(f"Correlation: {correlation}\nSpearman Correlation: {spearman}")
-
+with open(f"{data_path}/{user}/{trial}/data/correlation.txt", "w") as f:
+    f.write(f"Correlation: {correlation}\nSpearman Correlation: {spearman}")
 # create a plot comparing LiDAR vs MiDaS and Feature Points vs MiDaS
 plt.figure()
 plt.scatter(lidar_depth, midas_extracted, label="LiDAR", s=0.5, alpha=0.5)
@@ -95,10 +100,11 @@ plt.legend()
 plt.xlabel("iPhone Depth")
 plt.ylabel("MiDaS Depth")
 plt.savefig(f"{data_path}/{user}/{trial}/{frame_number}/LidarV.Midas_{name}.png")
-
+plt.savefig(f"{data_path}/{user}/{trial}/data/LidarV.Midas_{name}.png")
 # create a plot of the LiDAR confidence levels
 plt.figure()
 plt.pcolor(lidar_confidence, cmap="Greys_r")
 plt.colorbar()
 plt.title("LiDAR Confidence")
 plt.savefig(f"{data_path}/{user}/{trial}/{frame_number}/Confidence_{name}.png")
+plt.savefig(f"{data_path}/{user}/{trial}/data/Confidence_{name}.png")
