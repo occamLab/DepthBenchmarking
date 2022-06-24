@@ -22,7 +22,7 @@ midas_output_path = "/Users/occamlab/Documents/ARPointCloud/output"
 
 # use: large, hybrid, phone, old
 # make sure to also change the weight file in the ./weights directory
-weight_used = "large"
+weight_used = "phone"
 
 # BEFORE RUNNING, MAKE SURE ALL PATHS AND FILE REFERENCES ARE CORRECT
 
@@ -151,3 +151,14 @@ for root, dirs, files in os.walk(trial_path):
         plt.title("LiDAR Confidence")
         plt.savefig(os.path.join(root, f"confidence_{id}.png"))
         plt.savefig(os.path.join(trial_path, "data", f"confidence_{id}.png"))
+
+# deleting used files
+for file in os.listdir(midas_input_path):
+    name, extension = os.path.splitext(file)
+    if extension == ".jpg":
+        os.remove(os.path.join(midas_input_path, file))
+
+for file in os.listdir(midas_output_path):
+    name, extension = os.path.splitext(file)
+    if extension == ".png" or extension == ".pfm":
+        os.remove(os.path.join(midas_output_path, file))
