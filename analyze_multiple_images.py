@@ -12,48 +12,48 @@ from scipy.linalg import inv
 from scipy.stats import spearmanr
 from utils import read_pfm
 
-user = "HccdFYqmqETaJltQbAe19bnyk2e2"
-trial = "23CF80B9-5290-4B3B-9EA9-46F083BBE825"
-trial_path = "/Users/occamlab/Documents/DepthData/depth_benchmarking/" + \
-    user + "/" + trial
+USER = "HccdFYqmqETaJltQbAe19bnyk2e2"
+TRIAL = "6CCBDFF7-057E-4FB6-A00F-98E659CE5A88"
+TRIAL_PATH = "/Users/occamlab/Documents/DepthData/depth_benchmarking/" + \
+    USER + "/" + TRIAL
 
-midas_input_path = "/Users/occamlab/Documents/ARPointCloud/input"
-midas_output_path = "/Users/occamlab/Documents/ARPointCloud/output"
+MIDAS_INPUT_PATH = "/Users/occamlab/Documents/ARPointCloud/input"
+MIDAS_OUTPUT_PATH = "/Users/occamlab/Documents/ARPointCloud/output"
 
 # use: large, hybrid, phone, old
 # make sure to also change the weight file in the ./weights directory
-weight_used = "phone"
+WEIGHT_USED = "large"
 
 # BEFORE RUNNING, MAKE SURE ALL PATHS AND FILE REFERENCES ARE CORRECT
 
 midas_weights = {"large":("_L", "dpt_large"), "hybrid":("_H", "dpt_hybrid"), \
     "phone":("_P", "midas_v21_small"), "old":("_O", "midas_v21")}
 
-for root, dirs, files in os.walk(trial_path):
+for root, dirs, files in os.walk(TRIAL_PATH):
     for file in files:
         if file == "frame.jpg":
-            new_name = user[0:3] + "_" + trial[0:3] + "_" + root[-4:] + \
-                midas_weights[weight_used][0] + ".jpg"
-            shutil.copyfile(os.path.join(root, file), os.path.join(midas_input_path, new_name))
+            new_name = USER[0:3] + "_" + TRIAL[0:3] + "_" + root[-4:] + \
+                midas_weights[WEIGHT_USED][0] + ".jpg"
+            shutil.copyfile(os.path.join(root, file), os.path.join(MIDAS_INPUT_PATH, new_name))
 
-os.system("python run.py --model_type " + midas_weights[weight_used][1]) 
+os.system("python run.py --model_type " + midas_weights[WEIGHT_USED][1])
 
-for file in os.listdir(midas_output_path):
+for file in os.listdir(MIDAS_OUTPUT_PATH):
     name, extension = os.path.splitext(file)
-    if extension == ".png" or extension == ".pfm":
+    if extension in (".png", ".pfm"):
         try:
             image_number_dir = name[-6:-2]
             image_number = [int(i) for i in image_number_dir]
-            shutil.copyfile(os.path.join(midas_output_path, file), \
-                os.path.join(trial_path, image_number_dir, file))
+            shutil.copyfile(os.path.join(MIDAS_OUTPUT_PATH, file), \
+                os.path.join(TRIAL_PATH, image_number_dir, file))
         except:
             continue
 
 
-if not os.path.exists(os.path.join(trial_path, "data")):
-    os.makedirs(os.path.join(trial_path, "data"))
+if not os.path.exists(os.path.join(TRIAL_PATH, "data")):
+    os.makedirs(os.path.join(TRIAL_PATH, "data"))
 
-for root, dirs, files in os.walk(trial_path):
+for root, dirs, files in os.walk(TRIAL_PATH):
     if len(files) >= 4:
         for file in files:
             name, extension = os.path.splitext(file)
@@ -61,15 +61,15 @@ for root, dirs, files in os.walk(trial_path):
             if file == "frame.jpg":
                 frame = cv.imread(os.path.join(root, file))
 
-            if extension == ".pfm" and name[-2:] == midas_weights[weight_used][0]:
+            if extension == ".pfm" and name[-2:] == midas_weights[WEIGHT_USED][0]:
                 inverse_depth = np.array(read_pfm(os.path.join(root, file))[0])
 
             if file == "framemetadata.json":
                 with open(os.path.join(root, file)) as my_file:
                     data = json.load(my_file)
 
-        id = user[0:3] + "_" + trial[0:3] + "_" + root[-4:] + \
-                midas_weights[weight_used][0]
+        tag = USER[0:3] + "_" + TRIAL[0:3] + "_" + root[-4:] + \
+                midas_weights[WEIGHT_USED][0]
 
         # extract data from the JSON file
         lidar_data = np.array(data["depthData"])
@@ -94,7 +94,7 @@ for root, dirs, files in os.walk(trial_path):
             if 0 <= round(pixel_x) < frame.shape[0] \
                 and 0 <= round(pixel_y) < frame.shape[1]:
                 ar_depths.append(row[2])
-        
+
         midas_depth = np.reciprocal(inverse_depth.copy())
 
         # get MiDaS depth values from pixels with feature points
@@ -107,9 +107,9 @@ for root, dirs, files in os.walk(trial_path):
 
             cv.circle(frame, (pixel_x, pixel_y), 5, (51, 14, 247), -1)
 
-        cv.imwrite(os.path.join(root, f"fp_{id}.jpg"), frame)
-        cv.imwrite(os.path.join(trial_path, "data", f"fp_{id}.jpg"), frame)
-        
+        cv.imwrite(os.path.join(root, f"fp_{tag}.jpg"), frame)
+        cv.imwrite(os.path.join(TRIAL_PATH, "data", f"fp_{tag}.jpg"), frame)
+
         lidar_depth = []
         for row in lidar_data:
             x = row[0]* row[3]
@@ -128,11 +128,11 @@ for root, dirs, files in os.walk(trial_path):
 
         correlation = np.corrcoef(np.ravel(lidar_depth), np.ravel(midas_extracted))
         spearman = spearmanr(np.ravel(lidar_depth), np.ravel(midas_extracted))
-        with open(os.path.join(root, f"corr_{id}.txt"), "w") as text:
+        with open(os.path.join(root, f"corr_{tag}.txt"), "w") as text:
             text.write(f"Correlation: {correlation}\nSpearman Correlation: {spearman}")
-        with open(os.path.join(trial_path, "data", f"corr_{id}.txt"), "w") as text:
+        with open(os.path.join(TRIAL_PATH, "data", f"corr_{tag}.txt"), "w") as text:
             text.write(f"Correlation: {correlation}\nSpearman Correlation: {spearman}")
-        
+
         # create a plot comparing LiDAR vs MiDaS and Feature Points vs MiDaS
         plt.figure()
         plt.scatter(lidar_depth, midas_extracted, label="LiDAR", s=0.5, alpha=0.5)
@@ -141,24 +141,24 @@ for root, dirs, files in os.walk(trial_path):
         plt.legend()
         plt.xlabel("iPhone Depth")
         plt.ylabel("MiDaS Depth")
-        plt.savefig(os.path.join(root, f"scatter_{id}.png"))
-        plt.savefig(os.path.join(trial_path, "data", f"scatter_{id}.png"))
+        plt.savefig(os.path.join(root, f"scatter_{tag}.png"))
+        plt.savefig(os.path.join(TRIAL_PATH, "data", f"scatter_{tag}.png"))
 
         # create a plot of the LiDAR confidence levels
         plt.figure()
         plt.pcolor(lidar_confidence, cmap="RdYlGn")
         plt.colorbar()
         plt.title("LiDAR Confidence")
-        plt.savefig(os.path.join(root, f"confidence_{id}.png"))
-        plt.savefig(os.path.join(trial_path, "data", f"confidence_{id}.png"))
+        plt.savefig(os.path.join(root, f"confidence_{tag}.png"))
+        plt.savefig(os.path.join(TRIAL_PATH, "data", f"confidence_{tag}.png"))
 
 # deleting used files
-for file in os.listdir(midas_input_path):
+for file in os.listdir(MIDAS_INPUT_PATH):
     name, extension = os.path.splitext(file)
     if extension == ".jpg":
-        os.remove(os.path.join(midas_input_path, file))
+        os.remove(os.path.join(MIDAS_INPUT_PATH, file))
 
-for file in os.listdir(midas_output_path):
+for file in os.listdir(MIDAS_OUTPUT_PATH):
     name, extension = os.path.splitext(file)
-    if extension == ".png" or extension == ".pfm":
-        os.remove(os.path.join(midas_output_path, file))
+    if extension in (".png", ".pfm"):
+        os.remove(os.path.join(MIDAS_OUTPUT_PATH, file))
