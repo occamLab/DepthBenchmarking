@@ -13,7 +13,7 @@ from scipy.stats import spearmanr
 from utils import read_pfm
 
 USER = "HccdFYqmqETaJltQbAe19bnyk2e2"
-TRIAL = "6CCBDFF7-057E-4FB6-A00F-98E659CE5A88"
+TRIAL = "23CF80B9-5290-4B3B-9EA9-46F083BBE825"
 TRIAL_PATH = "/Users/occamlab/Documents/DepthData/depth_benchmarking/" + \
     USER + "/" + TRIAL
 
@@ -54,7 +54,7 @@ if not os.path.exists(os.path.join(TRIAL_PATH, "data")):
     os.makedirs(os.path.join(TRIAL_PATH, "data"))
 
 for root, dirs, files in os.walk(TRIAL_PATH):
-    if len(files) >= 4:
+    if "framemetadata.json" in files:
         for file in files:
             name, extension = os.path.splitext(file)
 
@@ -126,12 +126,23 @@ for root, dirs, files in os.walk(TRIAL_PATH):
                 midas_extracted.append(midas_depth[round(3.75 + 7.5 * i), round(3.75 + 7.5 * j)])
         midas_extracted = np.reshape(midas_extracted, (192, 256))
 
-        correlation = np.corrcoef(np.ravel(lidar_depth), np.ravel(midas_extracted))
+        correlation = np.corrcoef(np.ravel(lidar_depth), np.ravel(midas_extracted))[0][1]
+        less_than_five_corr = np.corrcoef(np.ravel(lidar_depth[lidar_depth<5]), \
+            np.ravel(midas_extracted[lidar_depth<5]))[0][1]
+        mid_high_conf_corr = np.corrcoef(np.ravel(lidar_depth[lidar_confidence>0]), \
+            np.ravel(midas_extracted[lidar_confidence>0]))[0][1]
         spearman = spearmanr(np.ravel(lidar_depth), np.ravel(midas_extracted))
+
         with open(os.path.join(root, f"corr_{tag}.txt"), "w") as text:
-            text.write(f"Correlation: {correlation}\nSpearman Correlation: {spearman}")
+            text.write(f"Correlation: {correlation}\n" \
+                f"Correlation for LiDAR < 5m: {less_than_five_corr}\n" \
+                f"Correlation for mid-high LiDAR confidence: {mid_high_conf_corr}\n" \
+                f"Spearman Correlation: {spearman}")
         with open(os.path.join(TRIAL_PATH, "data", f"corr_{tag}.txt"), "w") as text:
-            text.write(f"Correlation: {correlation}\nSpearman Correlation: {spearman}")
+            text.write(f"Correlation: {correlation}\n" \
+                f"Correlation for LiDAR < 5m: {less_than_five_corr}\n" \
+                f"Correlation for mid-high LiDAR confidence: {mid_high_conf_corr}\n" \
+                f"Spearman Correlation: {spearman}")
 
         # create a plot comparing LiDAR vs MiDaS and Feature Points vs MiDaS
         plt.figure()
