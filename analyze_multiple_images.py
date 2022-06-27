@@ -14,11 +14,11 @@ from utils import read_pfm
 
 USER = "HccdFYqmqETaJltQbAe19bnyk2e2"
 TRIAL = "23CF80B9-5290-4B3B-9EA9-46F083BBE825"
-TRIAL_PATH = "/Users/angrocki/Desktop/DepthData/depth_benchmarking/" + \
+TRIAL_PATH = "/Users/occamlab/Documents/DepthData/depth_benchmarking/" + \
     USER + "/" + TRIAL
 
-MIDAS_INPUT_PATH = "/Users/angrocki/Desktop/SummerResearch/DepthBenchmarking/input"
-MIDAS_OUTPUT_PATH = "/Users/angrocki/Desktop/SummerResearch/DepthBenchmarking/output"
+MIDAS_INPUT_PATH = "/Users/occamlab/Documents/ARPointCloud/input"
+MIDAS_OUTPUT_PATH = "/Users/occamlab/Documents/ARPointCloud/output"
 
 # use: large, hybrid, phone, old
 # make sure to also change the weight file in the ./weights directory
@@ -127,27 +127,28 @@ for root, dirs, files in os.walk(TRIAL_PATH):
         midas_extracted = np.reshape(midas_extracted, (192, 256))
 
         # calculate correlation data
-        correlation = np.corrcoef(np.ravel(lidar_depth), np.ravel(midas_extracted))[0][1]
+        lidar_midas_correlation = np.corrcoef(np.ravel(lidar_depth), np.ravel(midas_extracted))[0][1]
         less_than_five_corr = np.corrcoef(np.ravel(lidar_depth[lidar_depth<5]), \
             np.ravel(midas_extracted[lidar_depth<5]))[0][1]
         mid_high_conf_corr = np.corrcoef(np.ravel(lidar_depth[lidar_confidence>0]), \
             np.ravel(midas_extracted[lidar_confidence>0]))[0][1]
         high_conf_corr = np.corrcoef(np.ravel(lidar_depth[lidar_confidence==2]), \
             np.ravel(midas_extracted[lidar_confidence==2]))[0][1]
-        spearman = spearmanr(np.ravel(lidar_depth), np.ravel(midas_extracted))
+        lidar_midas_spearman = spearmanr(np.ravel(lidar_depth), np.ravel(midas_extracted))
+        ar_midas_corr = np.corrcoef(np.ravel(ar_depths), \
+            np.ravel(midas_depths_at_feature_points))[0][1]
+        ar_midas_spearman = spearmanr(np.ravel(ar_depths), np.ravel(midas_depths_at_feature_points))
 
         with open(os.path.join(root, f"corr_{tag}.txt"), "w") as text:
-            text.write(f"Correlation: {correlation}\n" \
+            text.write(f"LIDAR/MIDAS CORRELATIONS\nCorrelation: {lidar_midas_correlation}\n" \
                 f"Correlation for LiDAR < 5m: {less_than_five_corr}\n" \
                 f"Correlation for mid-high LiDAR confidence: {mid_high_conf_corr}\n" \
                 f"Correlation for high LiDAR confidence: {high_conf_corr}\n" \
-                f"Spearman Correlation: {spearman}")
-        with open(os.path.join(TRIAL_PATH, "data", f"corr_{tag}.txt"), "w") as text:
-            text.write(f"Correlation: {correlation}\n" \
-                f"Correlation for LiDAR < 5m: {less_than_five_corr}\n" \
-                f"Correlation for mid-high LiDAR confidence: {mid_high_conf_corr}\n" \
-                f"Correlation for high LiDAR confidence: {high_conf_corr}\n" \
-                f"Spearman Correlation: {spearman}")
+                f"Spearman correlation: {lidar_midas_spearman}\n\n"
+                f"ARKIT/MIDAS CORRELATIONS\nCorrelation: {ar_midas_corr}\n"
+                f"Spearman correlation: {ar_midas_spearman}")
+        shutil.copyfile(os.path.join(root, f"corr_{tag}.txt"), \
+            os.path.join(TRIAL_PATH, "data", f"corr_{tag}.txt"))
 
         # create a plot comparing LiDAR vs MiDaS and Feature Points vs MiDaS
         plt.figure()
@@ -203,7 +204,7 @@ for root, dirs, files in os.walk(TRIAL_PATH):
         plt.savefig(os.path.join(root, f"less_five_corr_{tag}.png"))
         plt.savefig(os.path.join(TRIAL_PATH, "data", f"less_five_corr_{tag}.png"))
 
-# deleting used files
+# delete used files
 for file in os.listdir(MIDAS_INPUT_PATH):
     name, extension = os.path.splitext(file)
     if extension == ".jpg":

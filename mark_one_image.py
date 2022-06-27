@@ -58,18 +58,6 @@ plt.pcolor(midas_depth, norm=colors.LogNorm(), cmap="PuRd_r")
 plt.colorbar()
 plt.title("Visualization of MiDaS Depths")
 
-# get MiDaS depth values from pixels with feature points
-midas_depths_at_feature_points = []
-for row in projected_fp:
-    pixel_x = row[0]
-    pixel_y = row[1]
-    if 0 <= pixel_x < frame.shape[0] and 0 <= pixel_y < frame.shape[1]:
-        midas_depths_at_feature_points.append(midas_depth[pixel_x, pixel_y])
-    cv.circle(frame, (pixel_x, pixel_y), 5, (51, 14, 247), -1)
-
-# draw circles on the input image
-cv.imwrite("output/featurepoints.jpg", frame)
-
 # scale LiDAR data
 lidar_depth = []
 for row in lidar_data:
@@ -91,6 +79,19 @@ plt.pcolor(lidar_depth, cmap="PuBu_r")
 plt.colorbar()
 plt.title("LiDAR Depth")
 
+# get MiDaS depth values from pixels with feature points
+midas_depths_at_feature_points = []
+for row in projected_fp:
+    pixel_x = row[0]
+    pixel_y = row[1]
+    if 0 <= pixel_x < frame.shape[0] and 0 <= pixel_y < frame.shape[1]:
+        midas_depths_at_feature_points.append(midas_depth[pixel_x, pixel_y])
+        
+    cv.circle(frame, (pixel_x, pixel_y), 5, (51, 14, 247), -1)
+
+# draw circles on the input image
+cv.imwrite("output/featurepoints.jpg", frame)
+
 # scale the MiDaS output to the size of the LiDAR depth data
 midas_extracted = []
 for i in range(lidar_depth.shape[0]):
@@ -109,6 +110,9 @@ print("Mid-high conf corr:", np.corrcoef(np.ravel(lidar_depth[lidar_confidence>0
 print("High conf corr:", np.corrcoef(np.ravel(lidar_depth[lidar_confidence==2]), \
     np.ravel(midas_extracted[lidar_confidence==2]))[0][1])
 print(spearmanr(np.ravel(lidar_depth), np.ravel(midas_extracted)))
+print("ARKit-MiDaS Correlation:", np.corrcoef(np.ravel(ar_depths), \
+    np.ravel(midas_depths_at_feature_points))[0][1])
+print(spearmanr(np.ravel(ar_depths), np.ravel(midas_depths_at_feature_points)))
 
 # create a plot comparing LiDAR vs MiDaS and Feature Points vs MiDaS
 plt.figure()
