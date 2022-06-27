@@ -104,6 +104,10 @@ print("Correlation:", np.corrcoef(np.ravel(lidar_depth), \
     np.ravel(midas_extracted))[0][1])
 print("<5 Corr:", np.corrcoef(np.ravel(lidar_depth[lidar_depth<5]), \
     np.ravel(midas_extracted[lidar_depth<5]))[0][1])
+print("Mid and high conf corr:", np.corrcoef(np.ravel(lidar_depth[lidar_confidence>0]), \
+    np.ravel(midas_extracted[lidar_confidence>0]))[0][1])
+print("High conf corr:", np.corrcoef(np.ravel(lidar_depth[lidar_confidence==2]), \
+    np.ravel(midas_extracted[lidar_confidence==2]))[0][1])
 print(spearmanr(np.ravel(lidar_depth), np.ravel(midas_extracted)))
 
 # create a plot comparing LiDAR vs MiDaS and Feature Points vs MiDaS
@@ -120,6 +124,33 @@ plt.figure()
 plt.pcolor(lidar_confidence, cmap="RdYlGn")
 plt.colorbar()
 plt.title("LiDAR Confidence")
+
+plt.figure()
+high_conf_lidar = lidar_depth.copy()
+high_conf_midas = midas_extracted.copy()
+high_conf_lidar[lidar_confidence<2] = np.nan
+high_conf_midas[lidar_confidence<2] = np.nan
+
+high_conf_corr_map = ((high_conf_lidar - np.nanmean(high_conf_lidar)) / np.nanstd(high_conf_lidar)) * \
+     ((high_conf_midas - np.nanmean(high_conf_midas)) / np.nanstd(high_conf_midas)) / \
+        (np.sum(lidar_confidence, where=2) / 2)
+
+plt.pcolor(high_conf_corr_map, cmap="RdYlGn")
+plt.colorbar()
+plt.title("Corrleation between High Confidence LiDAR and MiDaS")
+
+plt.figure()
+less_five_lidar = lidar_depth.copy()
+less_five_midas = midas_extracted.copy()
+less_five_lidar[lidar_depth>5] = np.nan
+less_five_midas[lidar_depth>5] = np.nan
+
+high_conf_corr_map = ((less_five_lidar - np.nanmean(less_five_lidar)) / np.nanstd(less_five_lidar)) * \
+     ((less_five_midas - np.nanmean(less_five_midas)) / np.nanstd(less_five_midas)) / \
+        (np.sum(~np.isnan(less_five_lidar)))
+plt.pcolor(high_conf_corr_map, cmap="RdYlGn")
+plt.colorbar()
+plt.title("Corrleation between Close Distance LiDAR and MiDaS")
 
 # show the plots
 plt.show()
