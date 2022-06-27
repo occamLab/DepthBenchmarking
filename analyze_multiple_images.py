@@ -13,7 +13,7 @@ from scipy.stats import spearmanr
 from utils import read_pfm
 
 USER = "HccdFYqmqETaJltQbAe19bnyk2e2"
-TRIAL = "23CF80B9-5290-4B3B-9EA9-46F083BBE825"
+TRIAL = "303283A4-2E9B-4DB2-B6B5-38D5E8A5E3C5"
 TRIAL_PATH = "/Users/occamlab/Documents/DepthData/depth_benchmarking/" + \
     USER + "/" + TRIAL
 
@@ -22,12 +22,23 @@ MIDAS_OUTPUT_PATH = "/Users/occamlab/Documents/ARPointCloud/output"
 
 # use: large, hybrid, phone, old
 # make sure to also change the weight file in the ./weights directory
-WEIGHT_USED = "large"
+WEIGHT_USED = "phone"
 
 # BEFORE RUNNING, MAKE SURE ALL PATHS AND FILE REFERENCES ARE CORRECT
 
 midas_weights = {"large":("_L", "dpt_large"), "hybrid":("_H", "dpt_hybrid"), \
     "phone":("_P", "midas_v21_small"), "old":("_O", "midas_v21")}
+
+# delete used files
+for file in os.listdir(MIDAS_INPUT_PATH):
+    name, extension = os.path.splitext(file)
+    if extension == ".jpg":
+        os.remove(os.path.join(MIDAS_INPUT_PATH, file))
+
+for file in os.listdir(MIDAS_OUTPUT_PATH):
+    name, extension = os.path.splitext(file)
+    if extension in (".png", ".pfm"):
+        os.remove(os.path.join(MIDAS_OUTPUT_PATH, file))
 
 for root, dirs, files in os.walk(TRIAL_PATH):
     for file in files:
@@ -72,10 +83,12 @@ for root, dirs, files in os.walk(TRIAL_PATH):
                 midas_weights[WEIGHT_USED][0]
 
         # extract data from the JSON file
+        raw_fp = np.array(data["rawFeaturePoints"])
+        if raw_fp.size == 0:
+            continue
         lidar_data = np.array(data["depthData"])
         lidar_confidence = np.reshape(data["confData"], (192, 256))
         pose = np.reshape(data["pose"], (4,4)).T
-        raw_fp = np.array(data["rawFeaturePoints"])
         raw_fp = np.hstack((raw_fp, np.ones((raw_fp.shape[0], 1)))).T
         projected_fp = np.around(data["projectedFeaturePoints"]).astype(int)
         focal_length = data["intrinsics"][0]
@@ -144,8 +157,8 @@ for root, dirs, files in os.walk(TRIAL_PATH):
                 f"Correlation for LiDAR < 5m: {less_than_five_corr}\n" \
                 f"Correlation for mid-high LiDAR confidence: {mid_high_conf_corr}\n" \
                 f"Correlation for high LiDAR confidence: {high_conf_corr}\n" \
-                f"Spearman correlation: {lidar_midas_spearman}\n\n"
-                f"ARKIT/MIDAS CORRELATIONS\nCorrelation: {ar_midas_corr}\n"
+                f"Spearman correlation: {lidar_midas_spearman}\n\n" \
+                f"ARKIT/MIDAS CORRELATIONS\nCorrelation: {ar_midas_corr}\n" \
                 f"Spearman correlation: {ar_midas_spearman}")
         shutil.copyfile(os.path.join(root, f"corr_{tag}.txt"), \
             os.path.join(TRIAL_PATH, "data", f"corr_{tag}.txt"))
@@ -160,6 +173,7 @@ for root, dirs, files in os.walk(TRIAL_PATH):
         plt.ylabel("MiDaS Depth")
         plt.savefig(os.path.join(root, f"scatter_{tag}.png"))
         plt.savefig(os.path.join(TRIAL_PATH, "data", f"scatter_{tag}.png"))
+        plt.close()
 
         # create a plot of the LiDAR confidence levels
         plt.figure()
@@ -168,6 +182,7 @@ for root, dirs, files in os.walk(TRIAL_PATH):
         plt.title("LiDAR Confidence")
         plt.savefig(os.path.join(root, f"confidence_{tag}.png"))
         plt.savefig(os.path.join(TRIAL_PATH, "data", f"confidence_{tag}.png"))
+        plt.close()
 
         # create a plot of LiDAR and Midas correlation for only high confidence points 
         plt.figure()
@@ -186,6 +201,7 @@ for root, dirs, files in os.walk(TRIAL_PATH):
         plt.title("Corrleation between High Confidence LiDAR and MiDaS")
         plt.savefig(os.path.join(root, f"high_conf_corr_{tag}.png"))
         plt.savefig(os.path.join(TRIAL_PATH, "data", f"high_conf_corr_{tag}.png"))
+        plt.close()
         
         # create a plot of LiDAR and Midas correlation for distances less than five meters 
         plt.figure()
@@ -203,6 +219,7 @@ for root, dirs, files in os.walk(TRIAL_PATH):
         plt.title("Corrleation between Close Distance LiDAR and MiDaS")
         plt.savefig(os.path.join(root, f"less_five_corr_{tag}.png"))
         plt.savefig(os.path.join(TRIAL_PATH, "data", f"less_five_corr_{tag}.png"))
+        plt.close()
 
 # delete used files
 for file in os.listdir(MIDAS_INPUT_PATH):
