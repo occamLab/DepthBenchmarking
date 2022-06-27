@@ -14,11 +14,11 @@ from utils import read_pfm
 
 USER = "HccdFYqmqETaJltQbAe19bnyk2e2"
 TRIAL = "23CF80B9-5290-4B3B-9EA9-46F083BBE825"
-TRIAL_PATH = "/Users/occamlab/Documents/DepthData/depth_benchmarking/" + \
+TRIAL_PATH = "/Users/angrocki/Desktop/DepthData/depth_benchmarking/" + \
     USER + "/" + TRIAL
 
-MIDAS_INPUT_PATH = "/Users/occamlab/Documents/ARPointCloud/input"
-MIDAS_OUTPUT_PATH = "/Users/occamlab/Documents/ARPointCloud/output"
+MIDAS_INPUT_PATH = "/Users/angrocki/Desktop/SummerResearch/DepthBenchmarking/input"
+MIDAS_OUTPUT_PATH = "/Users/angrocki/Desktop/SummerResearch/DepthBenchmarking/output"
 
 # use: large, hybrid, phone, old
 # make sure to also change the weight file in the ./weights directory
@@ -126,22 +126,27 @@ for root, dirs, files in os.walk(TRIAL_PATH):
                 midas_extracted.append(midas_depth[round(3.75 + 7.5 * i), round(3.75 + 7.5 * j)])
         midas_extracted = np.reshape(midas_extracted, (192, 256))
 
+        # calculate correlation data
         correlation = np.corrcoef(np.ravel(lidar_depth), np.ravel(midas_extracted))[0][1]
         less_than_five_corr = np.corrcoef(np.ravel(lidar_depth[lidar_depth<5]), \
             np.ravel(midas_extracted[lidar_depth<5]))[0][1]
         mid_high_conf_corr = np.corrcoef(np.ravel(lidar_depth[lidar_confidence>0]), \
             np.ravel(midas_extracted[lidar_confidence>0]))[0][1]
+        high_conf_corr = np.corrcoef(np.ravel(lidar_depth[lidar_confidence==2]), \
+            np.ravel(midas_extracted[lidar_confidence==2]))[0][1]
         spearman = spearmanr(np.ravel(lidar_depth), np.ravel(midas_extracted))
 
         with open(os.path.join(root, f"corr_{tag}.txt"), "w") as text:
             text.write(f"Correlation: {correlation}\n" \
                 f"Correlation for LiDAR < 5m: {less_than_five_corr}\n" \
                 f"Correlation for mid-high LiDAR confidence: {mid_high_conf_corr}\n" \
+                f"Correlation for high LiDAR confidence: {high_conf_corr}\n" \
                 f"Spearman Correlation: {spearman}")
         with open(os.path.join(TRIAL_PATH, "data", f"corr_{tag}.txt"), "w") as text:
             text.write(f"Correlation: {correlation}\n" \
                 f"Correlation for LiDAR < 5m: {less_than_five_corr}\n" \
                 f"Correlation for mid-high LiDAR confidence: {mid_high_conf_corr}\n" \
+                f"Correlation for high LiDAR confidence: {high_conf_corr}\n" \
                 f"Spearman Correlation: {spearman}")
 
         # create a plot comparing LiDAR vs MiDaS and Feature Points vs MiDaS
@@ -162,6 +167,41 @@ for root, dirs, files in os.walk(TRIAL_PATH):
         plt.title("LiDAR Confidence")
         plt.savefig(os.path.join(root, f"confidence_{tag}.png"))
         plt.savefig(os.path.join(TRIAL_PATH, "data", f"confidence_{tag}.png"))
+
+        # create a plot of LiDAR and Midas correlation for only high confidence points 
+        plt.figure()
+        high_conf_lidar = lidar_depth.copy()
+        high_conf_midas = midas_extracted.copy()
+        high_conf_lidar[lidar_confidence<2] = np.nan
+        high_conf_midas[lidar_confidence<2] = np.nan
+
+        high_conf_corr_map = ((high_conf_lidar - np.nanmean(high_conf_lidar)) / \
+            np.nanstd(high_conf_lidar)) * ((high_conf_midas - \
+                np.nanmean(high_conf_midas)) / np.nanstd(high_conf_midas)) / \
+                (np.sum(lidar_confidence, where=2) / 2)
+
+        plt.pcolor(high_conf_corr_map, cmap="RdYlGn")
+        plt.colorbar()
+        plt.title("Corrleation between High Confidence LiDAR and MiDaS")
+        plt.savefig(os.path.join(root, f"high_conf_corr_{tag}.png"))
+        plt.savefig(os.path.join(TRIAL_PATH, "data", f"high_conf_corr_{tag}.png"))
+        
+        # create a plot of LiDAR and Midas correlation for distances less than five meters 
+        plt.figure()
+        less_five_lidar = lidar_depth.copy()
+        less_five_midas = midas_extracted.copy()
+        less_five_lidar[lidar_depth>5] = np.nan
+        less_five_midas[lidar_depth>5] = np.nan
+
+        less_five_corr_map = ((less_five_lidar - np.nanmean(less_five_lidar)) / \
+            np.nanstd(less_five_lidar)) * ((less_five_midas - \
+                np.nanmean(less_five_midas)) / np.nanstd(less_five_midas)) / \
+                (np.sum(~np.isnan(less_five_lidar)))
+        plt.pcolor(less_five_corr_map, cmap="RdYlGn")
+        plt.colorbar()
+        plt.title("Corrleation between Close Distance LiDAR and MiDaS")
+        plt.savefig(os.path.join(root, f"less_five_corr_{tag}.png"))
+        plt.savefig(os.path.join(TRIAL_PATH, "data", f"less_five_corr_{tag}.png"))
 
 # deleting used files
 for file in os.listdir(MIDAS_INPUT_PATH):
