@@ -46,15 +46,17 @@ for row in camera_fp:
         ar_depths.append(row[2])
     calc_projected_fp.append([pixel_x, pixel_y])
 calc_projected_fp = np.array(calc_projected_fp)
+ar_depths = np.array(ar_depths)
 
 # change path to acutal if using a different computer
 inverse_depth = np.array(read_pfm(\
     "/Users/occamlab/Documents/ARPointCloud/output/frame.pfm")[0])
-midas_depth = np.reciprocal(inverse_depth.copy())
+inverse_depth[inverse_depth<1] = np.nan
+midas_depth = np.reciprocal(inverse_depth)
 
 # create a figure representing the MiDaS depths
 plt.figure()
-plt.pcolor(midas_depth, norm=colors.LogNorm(), cmap="PuRd_r")
+plt.pcolor(midas_depth, cmap="PuRd_r")
 plt.colorbar()
 plt.title("Visualization of MiDaS Depths")
 
@@ -89,8 +91,14 @@ for row in projected_fp:
         
     cv.circle(frame, (pixel_x, pixel_y), 5, (51, 14, 247), -1)
 
+midas_depths_at_feature_points = np.array(midas_depths_at_feature_points)
+
 # draw circles on the input image
 cv.imwrite("output/featurepoints.jpg", frame)
+
+# set a maximum MiDaS depth if there are invalid points
+if True in np.isnan(midas_depth):
+    midas_depth[midas_depth>=max(midas_depths_at_feature_points)] = np.nan
 
 # scale the MiDaS output to the size of the LiDAR depth data
 midas_extracted = []
@@ -101,22 +109,30 @@ for i in range(lidar_depth.shape[0]):
 midas_extracted = np.reshape(midas_extracted, (192, 256))
 
 # print out correlations between LiDAR and MiDaS data
-print("Correlation:", np.corrcoef(np.ravel(lidar_depth), \
-    np.ravel(midas_extracted))[0][1])
-print("<5 Corr:", np.corrcoef(np.ravel(lidar_depth[lidar_depth<5]), \
-    np.ravel(midas_extracted[lidar_depth<5]))[0][1])
-print("Mid-high conf corr:", np.corrcoef(np.ravel(lidar_depth[lidar_confidence>0]), \
-    np.ravel(midas_extracted[lidar_confidence>0]))[0][1])
-print("High conf corr:", np.corrcoef(np.ravel(lidar_depth[lidar_confidence==2]), \
-    np.ravel(midas_extracted[lidar_confidence==2]))[0][1])
-print(spearmanr(np.ravel(lidar_depth), np.ravel(midas_extracted)))
-print("ARKit-MiDaS Correlation:", np.corrcoef(np.ravel(ar_depths), \
-    np.ravel(midas_depths_at_feature_points))[0][1])
-print(spearmanr(np.ravel(ar_depths), np.ravel(midas_depths_at_feature_points)))
+print("Correlation:", \
+    np.corrcoef(np.ravel(lidar_depth[~np.isnan(midas_extracted)]), \
+    np.ravel(midas_extracted[~np.isnan(midas_extracted)]))[0][1])
+print("<5 Corr:", \
+    np.corrcoef(np.ravel(lidar_depth[(lidar_depth<5) & (~np.isnan(midas_extracted))]), \
+    np.ravel(midas_extracted[(lidar_depth<5) & (~np.isnan(midas_extracted))]))[0][1])
+print("Mid-high conf corr:", \
+    np.corrcoef(np.ravel(lidar_depth[(lidar_confidence>0) & (~np.isnan(midas_extracted))]), \
+    np.ravel(midas_extracted[(lidar_confidence>0) & (~np.isnan(midas_extracted))]))[0][1])
+print("High conf corr:", \
+    np.corrcoef(np.ravel(lidar_depth[(lidar_confidence==2) & (~np.isnan(midas_extracted))]), \
+    np.ravel(midas_extracted[(lidar_confidence==2) & (~np.isnan(midas_extracted))]))[0][1])
+print(spearmanr(np.ravel(lidar_depth[~np.isnan(midas_extracted)]), \
+    np.ravel(midas_extracted[~np.isnan(midas_extracted)])))
+print("ARKit-MiDaS Correlation:", \
+    np.corrcoef(np.ravel(ar_depths[~np.isnan(midas_depths_at_feature_points)]), \
+    np.ravel(midas_depths_at_feature_points[~np.isnan(midas_depths_at_feature_points)]))[0][1])
+print(spearmanr(np.ravel(ar_depths[~np.isnan(midas_depths_at_feature_points)]), \
+    np.ravel(midas_depths_at_feature_points[~np.isnan(midas_depths_at_feature_points)])))
 
 # create a plot comparing LiDAR vs MiDaS and Feature Points vs MiDaS
 plt.figure()
-plt.scatter(lidar_depth, midas_extracted, label="LiDAR", s=0.5, alpha=0.5)
+plt.scatter(lidar_depth[midas_extracted!=np.nan], midas_extracted[midas_extracted!=np.nan], \
+    label="LiDAR", s=0.5, alpha=0.5)
 plt.scatter(ar_depths, midas_depths_at_feature_points, c="r", label="ARKit FP")
 plt.title("iPhone Depth vs. MiDaS Depth")
 plt.legend()
