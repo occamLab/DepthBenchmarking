@@ -13,7 +13,7 @@ from scipy.stats import spearmanr
 from utils import read_pfm
 
 USER = "HccdFYqmqETaJltQbAe19bnyk2e2"
-TRIAL = "303283A4-2E9B-4DB2-B6B5-38D5E8A5E3C5"
+TRIAL = "7C271404-B251-450E-9C52-DB3C6BDF448D"
 TRIAL_PATH = "/Users/occamlab/Documents/DepthData/depth_benchmarking/" + \
     USER + "/" + TRIAL
 
@@ -74,6 +74,7 @@ for root, dirs, files in os.walk(TRIAL_PATH):
 
             if extension == ".pfm" and name[-2:] == midas_weights[WEIGHT_USED][0]:
                 inverse_depth = np.array(read_pfm(os.path.join(root, file))[0])
+                inverse_depth[inverse_depth<1] = np.nan
 
             if file == "framemetadata.json":
                 with open(os.path.join(root, file)) as my_file:
@@ -107,8 +108,9 @@ for root, dirs, files in os.walk(TRIAL_PATH):
             if 0 <= round(pixel_x) < frame.shape[0] \
                 and 0 <= round(pixel_y) < frame.shape[1]:
                 ar_depths.append(row[2])
+        ar_depths = np.array(ar_depths)
 
-        midas_depth = np.reciprocal(inverse_depth.copy())
+        midas_depth = np.reciprocal(inverse_depth)
 
         # get MiDaS depth values from pixels with feature points
         midas_depths_at_feature_points = []
@@ -119,6 +121,8 @@ for root, dirs, files in os.walk(TRIAL_PATH):
                 midas_depths_at_feature_points.append(midas_depth[pixel_x, pixel_y])
 
             cv.circle(frame, (pixel_x, pixel_y), 5, (51, 14, 247), -1)
+
+        midas_depths_at_feature_points = np.array(midas_depths_at_feature_points)
 
         cv.imwrite(os.path.join(root, f"fp_{tag}.jpg"), frame)
         cv.imwrite(os.path.join(TRIAL_PATH, "data", f"fp_{tag}.jpg"), frame)
@@ -132,6 +136,10 @@ for root, dirs, files in os.walk(TRIAL_PATH):
 
         lidar_depth = np.reshape(lidar_depth, (256, 192, 3))[:, :, 2].T * -1
 
+        # set a maximum MiDaS depth if there are invalid points
+        if True in np.isnan(midas_depth):
+            midas_depth[midas_depth>=max(midas_depths_at_feature_points)] = np.nan
+
         # scale the MiDaS output to the size of the LiDAR depth data
         midas_extracted = []
         for i in range(lidar_depth.shape[0]):
@@ -140,18 +148,22 @@ for root, dirs, files in os.walk(TRIAL_PATH):
         midas_extracted = np.reshape(midas_extracted, (192, 256))
 
         # calculate correlation data
-        lidar_midas_correlation = np.corrcoef(np.ravel(lidar_depth), np.ravel(midas_extracted))[0][1]
-        less_than_five_corr = np.corrcoef(np.ravel(lidar_depth[lidar_depth<5]), \
-            np.ravel(midas_extracted[lidar_depth<5]))[0][1]
-        mid_high_conf_corr = np.corrcoef(np.ravel(lidar_depth[lidar_confidence>0]), \
-            np.ravel(midas_extracted[lidar_confidence>0]))[0][1]
-        high_conf_corr = np.corrcoef(np.ravel(lidar_depth[lidar_confidence==2]), \
-            np.ravel(midas_extracted[lidar_confidence==2]))[0][1]
-        lidar_midas_spearman = spearmanr(np.ravel(lidar_depth), np.ravel(midas_extracted))
-        ar_midas_corr = np.corrcoef(np.ravel(ar_depths), \
-            np.ravel(midas_depths_at_feature_points))[0][1]
-        ar_midas_spearman = spearmanr(np.ravel(ar_depths), np.ravel(midas_depths_at_feature_points))
+        lidar_midas_correlation = np.corrcoef(np.ravel(lidar_depth[~np.isnan(midas_extracted)]), \
+            np.ravel(midas_extracted[~np.isnan(midas_extracted)]))[0][1]
+        less_than_five_corr = np.corrcoef(np.ravel(lidar_depth[(lidar_depth<5) & (~np.isnan(midas_extracted))]), \
+            np.ravel(midas_extracted[(lidar_depth<5) & (~np.isnan(midas_extracted))]))[0][1]
+        mid_high_conf_corr = np.corrcoef(np.ravel(lidar_depth[(lidar_confidence>0) & (~np.isnan(midas_extracted))]), \
+            np.ravel(midas_extracted[(lidar_confidence>0) & (~np.isnan(midas_extracted))]))[0][1]
+        high_conf_corr = np.corrcoef(np.ravel(lidar_depth[(lidar_confidence==2) & (~np.isnan(midas_extracted))]), \
+            np.ravel(midas_extracted[(lidar_confidence==2) & (~np.isnan(midas_extracted))]))[0][1]
+        lidar_midas_spearman = spearmanr(np.ravel(lidar_depth[~np.isnan(midas_extracted)]), \
+            np.ravel(midas_extracted[~np.isnan(midas_extracted)]))
+        ar_midas_corr = np.corrcoef(np.ravel(ar_depths[~np.isnan(midas_depths_at_feature_points)]), \
+            np.ravel(midas_depths_at_feature_points[~np.isnan(midas_depths_at_feature_points)]))[0][1]
+        ar_midas_spearman = spearmanr(np.ravel(ar_depths[~np.isnan(midas_depths_at_feature_points)]), \
+            np.ravel(midas_depths_at_feature_points[~np.isnan(midas_depths_at_feature_points)]))
 
+        # write the correlation data into a text file
         with open(os.path.join(root, f"corr_{tag}.txt"), "w") as text:
             text.write(f"LIDAR/MIDAS CORRELATIONS\nCorrelation: {lidar_midas_correlation}\n" \
                 f"Correlation for LiDAR < 5m: {less_than_five_corr}\n" \
