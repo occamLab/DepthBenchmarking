@@ -2,8 +2,8 @@ import os
 import numpy as np
 
 # change based on computer path: Data is a folder with all proccesed data trails
-directory = "/Users/angrocki/Desktop/Data"
-trial = "6CCBDFF7-057E-4FB6-A00F-98E659CE5A88"
+directory = "/Users/occamlab/Documents/DepthData/depth_benchmarking/HccdFYqmqETaJltQbAe19bnyk2e2"
+trial = "7C271404-B251-450E-9C52-DB3C6BDF448D"
 path = os.path.join(directory, f"{trial}/data/")
 
 # varibles for large Midas

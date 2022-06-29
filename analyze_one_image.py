@@ -1,12 +1,15 @@
 """
-This file loads a captured frame and associated metadata and marks the feature
-points on the image.
+This file performs extensive analysis on a captured frame and its corresponding
+MiDaS data. Output includes a 3D visualization of LiDAR data, visualizations
+of MiDaS and LiDAR depth maps, a scatter plot of correlations between iPhone
+depth and MiDaS depth data, and a map of LiDAR confidence levels of the given
+frame. The frame must be run through the MiDaS neural network before running
+this file for analysis.
 """
 
 import json
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib.colors as colors
 import cv2 as cv
 import pyvista as pv
 from scipy.linalg import inv
@@ -49,9 +52,12 @@ calc_projected_fp = np.array(calc_projected_fp)
 ar_depths = np.array(ar_depths)
 
 # change path to acutal if using a different computer
+# get the inverse depth from the PFM file
 inverse_depth = np.array(read_pfm(\
     "/Users/occamlab/Documents/ARPointCloud/output/frame.pfm")[0])
+# replace negative and close-to-zero erroneous values with NaN
 inverse_depth[inverse_depth<1] = np.nan
+# get the MiDaS depth by taking the reciprocal of the inverse depth
 midas_depth = np.reciprocal(inverse_depth)
 
 # create a figure representing the MiDaS depths
@@ -131,8 +137,7 @@ print(spearmanr(np.ravel(ar_depths[~np.isnan(midas_depths_at_feature_points)]), 
 
 # create a plot comparing LiDAR vs MiDaS and Feature Points vs MiDaS
 plt.figure()
-plt.scatter(lidar_depth[midas_extracted!=np.nan], midas_extracted[midas_extracted!=np.nan], \
-    label="LiDAR", s=0.5, alpha=0.5)
+plt.scatter(lidar_depth, midas_extracted, label="LiDAR", s=0.5, alpha=0.5)
 plt.scatter(ar_depths, midas_depths_at_feature_points, c="r", label="ARKit FP")
 plt.title("iPhone Depth vs. MiDaS Depth")
 plt.legend()
