@@ -18,6 +18,7 @@ from utils import read_pfm
 
 # load captured frame
 frame = cv.imread("input/frame.jpg")
+frame = cv.rotate(frame, cv.ROTATE_90_COUNTERCLOCKWISE)
 
 # load the JSON file
 with open("framemetadata.json") as my_file:
@@ -55,6 +56,7 @@ ar_depths = np.array(ar_depths)
 # get the inverse depth from the PFM file
 inverse_depth = np.array(read_pfm(\
     "/Users/occamlab/Documents/ARPointCloud/output/frame.pfm")[0])
+inverse_depth = np.rot90(inverse_depth)
 # replace negative and close-to-zero erroneous values with NaN
 inverse_depth[inverse_depth<1] = np.nan
 # get the MiDaS depth by taking the reciprocal of the inverse depth
@@ -76,6 +78,7 @@ for row in lidar_data:
 
 # visualize a 3D point cloud of the LiDAR depth data
 pv_point_cloud = pv.PolyData(lidar_depth)
+print("PyVista loaded")
 pv_point_cloud.plot(render_points_as_spheres=True)
 
 # extract depth in meters from LiDAR data
