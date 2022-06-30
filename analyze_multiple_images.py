@@ -13,7 +13,7 @@ from scipy.stats import spearmanr
 from utils import read_pfm
 
 USER = "HccdFYqmqETaJltQbAe19bnyk2e2"
-TRIAL = "7C271404-B251-450E-9C52-DB3C6BDF448D"
+TRIAL = "6CCBDFF7-057E-4FB6-A00F-98E659CE5A88"
 TRIAL_PATH = "/Users/occamlab/Documents/DepthData/depth_benchmarking/" + \
     USER + "/" + TRIAL
 
@@ -46,6 +46,8 @@ for root, dirs, files in os.walk(TRIAL_PATH):
             new_name = USER[0:3] + "_" + TRIAL[0:3] + "_" + root[-4:] + \
                 midas_weights[WEIGHT_USED][0] + ".jpg"
             shutil.copyfile(os.path.join(root, file), os.path.join(MIDAS_INPUT_PATH, new_name))
+            frame = cv.imread(os.path.join(MIDAS_INPUT_PATH, new_name))
+            cv.imwrite(os.path.join(MIDAS_INPUT_PATH, new_name), cv.rotate(frame, cv.ROTATE_90_CLOCKWISE))
 
 os.system("python run.py --model_type " + midas_weights[WEIGHT_USED][1])
 
@@ -74,6 +76,7 @@ for root, dirs, files in os.walk(TRIAL_PATH):
 
             if extension == ".pfm" and name[-2:] == midas_weights[WEIGHT_USED][0]:
                 inverse_depth = np.array(read_pfm(os.path.join(root, file))[0])
+                inverse_depth = np.rot90(inverse_depth)
                 inverse_depth[inverse_depth<1] = np.nan
 
             if file == "framemetadata.json":
@@ -129,16 +132,12 @@ for root, dirs, files in os.walk(TRIAL_PATH):
 
         lidar_depth = []
         for row in lidar_data:
-            x = row[0]* row[3]
+            x = row[0] * row[3]
             y = row[1] * row[3]
             z = row[2] * row[3]
             lidar_depth.append([x,y,z])
 
         lidar_depth = np.reshape(lidar_depth, (256, 192, 3))[:, :, 2].T * -1
-
-        # set a maximum MiDaS depth if there are invalid points
-        if True in np.isnan(midas_depth):
-            midas_depth[midas_depth>=max(midas_depths_at_feature_points)] = np.nan
 
         # scale the MiDaS output to the size of the LiDAR depth data
         midas_extracted = []
