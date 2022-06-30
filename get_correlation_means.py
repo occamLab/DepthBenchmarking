@@ -6,9 +6,10 @@ import os
 import numpy as np
 
 # change based on computer path: Data is a folder with all proccesed data trials
-DIRECTORY = "/Users/angrocki/Desktop/Data"
-TRIAL = "23CF80B9-5290-4B3B-9EA9-46F083BBE825"
-path = os.path.join(DIRECTORY, f"{TRIAL}/data/")
+DIRECTORY = "/Users/angrocki/Desktop/DepthData/depth_benchmarking/"
+USER = "HccdFYqmqETaJltQbAe19bnyk2e2"
+TRIAL = "FCABFB69-BB71-491D-8AC8-9B1D20F83B62"
+path = os.path.join(DIRECTORY, f"{USER}/{TRIAL}/data/")
 
 # varibles for large Midas
 lidar_midas_correlation_L = []
