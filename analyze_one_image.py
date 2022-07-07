@@ -56,19 +56,19 @@ ar_depths = np.array(ar_depths)
 # change path to acutal if using a different computer
 # get the inverse depth from the PFM file
 inverse_depth = np.array(read_pfm(\
-    "/Users/angrocki/Desktop/SummerResearch/DepthBenchmarking/output/frame.pfm")[0])
+    "/Users/occamlab/Documents/ARPointCloud/output/frame.pfm")[0])
 inverse_depth = np.rot90(inverse_depth)
 # replace negative and close-to-zero erroneous values with NaN
 inverse_depth[inverse_depth<1] = np.nan
 # get the MiDaS depth by taking the reciprocal of the inverse depth
 midas_depth = np.reciprocal(inverse_depth)
-
+"""
 # create a figure representing the MiDaS depths
 plt.figure()
 plt.pcolor(midas_depth, cmap="PuRd_r")
 plt.colorbar()
 plt.title("Visualization of MiDaS Depths")
-
+"""
 # scale LiDAR data
 lidar_depth = []
 for row in lidar_data:
@@ -85,13 +85,13 @@ pv_point_cloud.plot(render_points_as_spheres=True)
 
 # extract depth in meters from LiDAR data
 lidar_depth = np.reshape(lidar_depth, (256, 192, 3))[:, :, 2].T * -1
-
+"""
 # create a figure representing the LiDAR depths
 plt.figure()
 plt.pcolor(lidar_depth, cmap="PuBu_r")
 plt.colorbar()
 plt.title("LiDAR Depth")
-
+"""
 # get MiDaS depth values from pixels with feature points
 midas_depths_at_feature_points = []
 lidar_depths_at_feature_points = []
@@ -114,6 +114,9 @@ lidar_confidence_at_feature_points = np.array(lidar_confidence_at_feature_points
 
 # draw circles on the input image
 cv.imwrite("output/featurepoints.jpg", frame)
+
+if True in np.isnan(midas_depth):
+            midas_depth[midas_depth>=2*max(midas_depths_at_feature_points)] = np.nan
 
 # scale the MiDaS output to the size of the LiDAR depth data
 midas_extracted = []
@@ -152,7 +155,7 @@ plt.title("iPhone Depth vs. MiDaS Depth")
 plt.legend()
 plt.xlabel("iPhone Depth")
 plt.ylabel("MiDaS Depth")
-
+"""
 # create a plot of the LiDAR confidence levels
 plt.figure()
 plt.pcolor(lidar_confidence, cmap="RdYlGn")
@@ -187,7 +190,7 @@ less_five_corr_map = ((less_five_lidar - np.nanmean(less_five_lidar)) / \
 plt.pcolor(less_five_corr_map, cmap="RdYlGn")
 plt.colorbar()
 plt.title("Corrleation between Close Distance LiDAR and MiDaS")
-
+"""
 plt.figure()
 plt.scatter(ar_depths, lidar_depths_at_feature_points)
 plt.xlabel("Feature Points")
@@ -206,15 +209,18 @@ for i in range(ar_depths.size):
     if lidar_confidence_at_feature_points[i] == 2:
         plt.annotate(str(i), (ar_depths[i], lidar_depths_at_feature_points[i]))
 
-# calculate line of best fit 
-A = np.vstack([midas_depths_at_feature_points.ravel(), np.ones(len(midas_depths_at_feature_points))]).T
-m, c = np.linalg.lstsq(A, ar_depths.ravel())[0]
+# calculate line of best fit
+valid_midas_at_fp = midas_depths_at_feature_points[~np.isnan(midas_depths_at_feature_points)]
+A = np.vstack([valid_midas_at_fp.ravel(), np.ones(valid_midas_at_fp.size)]).T
+m, c = np.linalg.lstsq(A, ar_depths[~np.isnan(midas_depths_at_feature_points)].ravel())[0]
 print(f"Midas Absolute Depth = {m}*midas_relative_depth + {c} ")
 
 #plot feature points vs midas
 plt.figure()
-plt.plot(midas_depths_at_feature_points, ar_depths,'o', label='Original data', markersize=10)
-plt.plot(midas_depths_at_feature_points, m*midas_depths_at_feature_points + c, 'r', label= f'Fitted line = ar_depth * {m} + {c}')
+plt.plot(valid_midas_at_fp, ar_depths[~np.isnan(midas_depths_at_feature_points)], \
+    'o', label='Original data', markersize=10)
+plt.plot(valid_midas_at_fp, m*valid_midas_at_fp + c, 'r', \
+    label= f'Fitted line = ar_depth * {m} + {c}')
 plt.xlabel("Midas Relative Depth")
 plt.ylabel("AR depth")
 plt.title("Midas Relative Depth v. AR Depth")
