@@ -101,9 +101,10 @@ for row in projected_fp:
         midas_depths_at_feature_points.append(midas_depth[pixel_row, pixel_col])
         lidar_depths_at_feature_points.append(lidar_depth[round(pixel_row / 7.5), round(pixel_col / 7.5)])
         lidar_confidence_at_feature_points.append(lidar_confidence[round(pixel_row / 7.5), round(pixel_col / 7.5)])
-        cv.circle(frame, (pixel_col, pixel_row), 5, (51, 14, 247), -1)
+        inverse_color = tuple(int(x) for x in (255 - frame[pixel_row][pixel_col]))
+        cv.circle(frame, (pixel_col, pixel_row), 5, (0, 255, 0), -1)
         cv.putText(frame, str(len(midas_depths_at_feature_points)), \
-            (pixel_col, pixel_row), cv.FONT_HERSHEY_COMPLEX, 1, (51, 14, 247))
+            (pixel_col, pixel_row), cv.FONT_HERSHEY_COMPLEX, 1, inverse_color)
 
 midas_depths_at_feature_points = np.array(midas_depths_at_feature_points)
 lidar_depths_at_feature_points = np.array(lidar_depths_at_feature_points)
@@ -111,10 +112,6 @@ lidar_confidence_at_feature_points = np.array(lidar_confidence_at_feature_points
 
 # draw circles on the input image
 cv.imwrite("output/featurepoints.jpg", frame)
-
-# set a maximum MiDaS depth if there are invalid points
-if True in np.isnan(midas_depth):
-    midas_depth[midas_depth>=max(midas_depths_at_feature_points)] = np.nan
 
 # scale the MiDaS output to the size of the LiDAR depth data
 midas_extracted = []
