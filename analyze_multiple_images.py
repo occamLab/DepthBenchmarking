@@ -25,46 +25,49 @@ MIDAS_OUTPUT_PATH = "/Users/occamlab/Documents/ARPointCloud/output"
 # make sure to also change the weight file in the ./weights directory
 WEIGHT_USED = "phone"
 
+RUN_MIDAS = False
+
 # BEFORE RUNNING, MAKE SURE ALL PATHS AND FILE REFERENCES ARE CORRECT
 
 midas_weights = {"large":("_L", "dpt_large"), "hybrid":("_H", "dpt_hybrid"), \
     "phone":("_P", "midas_v21_small"), "old":("_O", "midas_v21")}
 
-# delete used files
-for file in os.listdir(MIDAS_INPUT_PATH):
-    name, extension = os.path.splitext(file)
-    if extension == ".jpg":
-        os.remove(os.path.join(MIDAS_INPUT_PATH, file))
+if RUN_MIDAS:
+    # delete used files
+    for file in os.listdir(MIDAS_INPUT_PATH):
+        name, extension = os.path.splitext(file)
+        if extension == ".jpg":
+            os.remove(os.path.join(MIDAS_INPUT_PATH, file))
 
-for file in os.listdir(MIDAS_OUTPUT_PATH):
-    name, extension = os.path.splitext(file)
-    if extension in (".png", ".pfm"):
-        os.remove(os.path.join(MIDAS_OUTPUT_PATH, file))
+    for file in os.listdir(MIDAS_OUTPUT_PATH):
+        name, extension = os.path.splitext(file)
+        if extension in (".png", ".pfm"):
+            os.remove(os.path.join(MIDAS_OUTPUT_PATH, file))
 
-for root, dirs, files in os.walk(TRIAL_PATH):
-    for file in files:
-        if file == "frame.jpg":
-            new_name = USER[0:3] + "_" + TRIAL[0:3] + "_" + root[-4:] + \
-                midas_weights[WEIGHT_USED][0] + ".jpg"
-            shutil.copyfile(os.path.join(root, file), os.path.join(MIDAS_INPUT_PATH, new_name))
-            frame = cv.imread(os.path.join(MIDAS_INPUT_PATH, new_name))
-            cv.imwrite(os.path.join(MIDAS_INPUT_PATH, new_name), cv.rotate(frame, cv.ROTATE_90_CLOCKWISE))
+    for root, dirs, files in os.walk(TRIAL_PATH):
+        for file in files:
+            if file == "frame.jpg":
+                new_name = USER[0:3] + "_" + TRIAL[0:3] + "_" + root[-4:] + \
+                    midas_weights[WEIGHT_USED][0] + ".jpg"
+                shutil.copyfile(os.path.join(root, file), os.path.join(MIDAS_INPUT_PATH, new_name))
+                frame = cv.imread(os.path.join(MIDAS_INPUT_PATH, new_name))
+                cv.imwrite(os.path.join(MIDAS_INPUT_PATH, new_name), cv.rotate(frame, cv.ROTATE_90_CLOCKWISE))
 
-os.system("python run.py --model_type " + midas_weights[WEIGHT_USED][1])
+    os.system("python run.py --model_type " + midas_weights[WEIGHT_USED][1])
 
-for file in os.listdir(MIDAS_OUTPUT_PATH):
-    name, extension = os.path.splitext(file)
-    if extension in (".png", ".pfm"):
-        try:
-            image_number_dir = name[-6:-2]
-            image_number = [int(i) for i in image_number_dir]
-            shutil.copyfile(os.path.join(MIDAS_OUTPUT_PATH, file), \
-                os.path.join(TRIAL_PATH, image_number_dir, file))
-        except:
-            continue
+    for file in os.listdir(MIDAS_OUTPUT_PATH):
+        name, extension = os.path.splitext(file)
+        if extension in (".png", ".pfm"):
+            try:
+                image_number_dir = name[-6:-2]
+                image_number = [int(i) for i in image_number_dir]
+                shutil.copyfile(os.path.join(MIDAS_OUTPUT_PATH, file), \
+                    os.path.join(TRIAL_PATH, image_number_dir, file))
+            except:
+                continue
 
 
-if not os.path.exists(os.path.join(TRIAL_PATH, "data")):
+if os.path.exists(TRIAL_PATH) and not os.path.exists(os.path.join(TRIAL_PATH, "data")):
     os.makedirs(os.path.join(TRIAL_PATH, "data"))
 
 for root, dirs, files in os.walk(TRIAL_PATH):
@@ -196,7 +199,7 @@ for root, dirs, files in os.walk(TRIAL_PATH):
         plt.savefig(os.path.join(root, f"scatter_{tag}.png"))
         plt.savefig(os.path.join(TRIAL_PATH, "data", f"scatter_{tag}.png"))
         plt.close()
-
+        """
         # create a plot of LiDAR and Midas correlation for only high confidence points 
         plt.figure()
         high_conf_lidar = lidar_depth.copy()
@@ -233,7 +236,7 @@ for root, dirs, files in os.walk(TRIAL_PATH):
         plt.savefig(os.path.join(root, f"less_five_corr_{tag}.png"))
         plt.savefig(os.path.join(TRIAL_PATH, "data", f"less_five_corr_{tag}.png"))
         plt.close()
-
+        """
         plt.figure()
         plt.scatter(ar_depths, lidar_depths_at_feature_points)
         plt.xlabel("Feature Points")
@@ -258,13 +261,14 @@ for root, dirs, files in os.walk(TRIAL_PATH):
         plt.savefig(os.path.join(TRIAL_PATH, "data", f"high_conf_lidar_fp_corr_{tag}.png"))
         plt.close()
 
-# delete used files
-for file in os.listdir(MIDAS_INPUT_PATH):
-    name, extension = os.path.splitext(file)
-    if extension == ".jpg":
-        os.remove(os.path.join(MIDAS_INPUT_PATH, file))
+if RUN_MIDAS:
+    # delete used files
+    for file in os.listdir(MIDAS_INPUT_PATH):
+        name, extension = os.path.splitext(file)
+        if extension == ".jpg":
+            os.remove(os.path.join(MIDAS_INPUT_PATH, file))
 
-for file in os.listdir(MIDAS_OUTPUT_PATH):
-    name, extension = os.path.splitext(file)
-    if extension in (".png", ".pfm"):
-        os.remove(os.path.join(MIDAS_OUTPUT_PATH, file))
+    for file in os.listdir(MIDAS_OUTPUT_PATH):
+        name, extension = os.path.splitext(file)
+        if extension in (".png", ".pfm"):
+            os.remove(os.path.join(MIDAS_OUTPUT_PATH, file))
