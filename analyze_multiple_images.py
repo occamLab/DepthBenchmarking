@@ -8,6 +8,7 @@ import json
 import numpy as np
 import matplotlib.pyplot as plt
 import cv2 as cv
+from math import floor
 from scipy.linalg import inv
 from scipy.stats import spearmanr
 from utils import read_pfm
@@ -106,29 +107,14 @@ for root, dirs, files in os.walk(TRIAL_PATH):
         # calculate depths and pixels of feature points
         ar_depths = []
         for row in camera_fp:
-            pixel_x = row[0] * focal_length / row[2] + offset_x + 0.5
-            pixel_y = row[1] * focal_length / row[2] + offset_y + 0.5
-            if 0 <= round(pixel_x) < frame.shape[0] \
-                and 0 <= round(pixel_y) < frame.shape[1]:
+            pixel_col = row[0] * focal_length / row[2] + offset_x + 0.5
+            pixel_row = row[1] * focal_length / row[2] + offset_y + 0.5
+            if 0 <= round(pixel_col) < frame.shape[1] \
+                and 0 <= round(pixel_row) < frame.shape[0]:
                 ar_depths.append(row[2])
         ar_depths = np.array(ar_depths)
 
         midas_depth = np.reciprocal(inverse_depth)
-
-        # get MiDaS depth values from pixels with feature points
-        midas_depths_at_feature_points = []
-        for row in projected_fp:
-            pixel_x = row[0]
-            pixel_y = row[1]
-            if 0 <= pixel_x < frame.shape[0] and 0 <= pixel_y < frame.shape[1]:
-                midas_depths_at_feature_points.append(midas_depth[pixel_x, pixel_y])
-
-            cv.circle(frame, (pixel_x, pixel_y), 5, (51, 14, 247), -1)
-
-        midas_depths_at_feature_points = np.array(midas_depths_at_feature_points)
-
-        cv.imwrite(os.path.join(root, f"fp_{tag}.jpg"), frame)
-        cv.imwrite(os.path.join(TRIAL_PATH, "data", f"fp_{tag}.jpg"), frame)
 
         lidar_depth = []
         for row in lidar_data:
@@ -138,6 +124,31 @@ for root, dirs, files in os.walk(TRIAL_PATH):
             lidar_depth.append([x,y,z])
 
         lidar_depth = np.reshape(lidar_depth, (256, 192, 3))[:, :, 2].T * -1
+
+        # get MiDaS depth values from pixels with feature points
+        midas_depths_at_feature_points = []
+        lidar_depths_at_feature_points = []
+        lidar_confidence_at_feature_points = []
+        for row in projected_fp:
+            pixel_col = row[0]
+            pixel_row = row[1]
+            if 0 <= pixel_col < frame.shape[1] and 0 <= pixel_row < frame.shape[0]:
+                midas_depths_at_feature_points.append(midas_depth[pixel_row, pixel_col])
+                lidar_depths_at_feature_points.append(lidar_depth\
+                    [floor(pixel_row / 7.5), floor(pixel_col / 7.5)])
+                lidar_confidence_at_feature_points.append(lidar_confidence\
+                    [floor(pixel_row / 7.5), floor(pixel_col / 7.5)])
+                inverse_color = tuple(int(x) for x in (255 - frame[pixel_row][pixel_col]))
+                cv.circle(frame, (pixel_col, pixel_row), 5, (0, 255, 0), -1)
+                cv.putText(frame, str(len(midas_depths_at_feature_points)), \
+                    (pixel_col, pixel_row), cv.FONT_HERSHEY_COMPLEX, 1, inverse_color)
+
+        midas_depths_at_feature_points = np.array(midas_depths_at_feature_points)
+        lidar_depths_at_feature_points = np.array(lidar_depths_at_feature_points)
+        lidar_confidence_at_feature_points = np.array(lidar_confidence_at_feature_points)
+
+        cv.imwrite(os.path.join(root, f"fp_{tag}.jpg"), frame)
+        cv.imwrite(os.path.join(TRIAL_PATH, "data", f"fp_{tag}.jpg"), frame)
 
         # scale the MiDaS output to the size of the LiDAR depth data
         midas_extracted = []
@@ -186,15 +197,6 @@ for root, dirs, files in os.walk(TRIAL_PATH):
         plt.savefig(os.path.join(TRIAL_PATH, "data", f"scatter_{tag}.png"))
         plt.close()
 
-        # create a plot of the LiDAR confidence levels
-        plt.figure()
-        plt.pcolor(lidar_confidence, cmap="RdYlGn")
-        plt.colorbar()
-        plt.title("LiDAR Confidence")
-        plt.savefig(os.path.join(root, f"confidence_{tag}.png"))
-        plt.savefig(os.path.join(TRIAL_PATH, "data", f"confidence_{tag}.png"))
-        plt.close()
-
         # create a plot of LiDAR and Midas correlation for only high confidence points 
         plt.figure()
         high_conf_lidar = lidar_depth.copy()
@@ -230,6 +232,30 @@ for root, dirs, files in os.walk(TRIAL_PATH):
         plt.title("Corrleation between Close Distance LiDAR and MiDaS")
         plt.savefig(os.path.join(root, f"less_five_corr_{tag}.png"))
         plt.savefig(os.path.join(TRIAL_PATH, "data", f"less_five_corr_{tag}.png"))
+        plt.close()
+
+        plt.figure()
+        plt.scatter(ar_depths, lidar_depths_at_feature_points)
+        plt.xlabel("Feature Points")
+        plt.ylabel("LiDAR")
+        plt.title("Feature Points vs All LiDAR")
+        for i in range(ar_depths.size):
+            plt.annotate(str(i), (ar_depths[i], lidar_depths_at_feature_points[i]))
+        plt.savefig(os.path.join(root, f"lidar_fp_corr_{tag}.png"))
+        plt.savefig(os.path.join(TRIAL_PATH, "data", f"lidar_fp_corr_{tag}.png"))
+        plt.close()
+
+        plt.figure()
+        plt.scatter(ar_depths[lidar_confidence_at_feature_points==2], \
+            lidar_depths_at_feature_points[lidar_confidence_at_feature_points==2], c="g")
+        plt.xlabel("Feature Points")
+        plt.ylabel("High Confidence LiDAR")
+        plt.title("Feature Points vs High Confidence LiDAR")
+        for i in range(ar_depths.size):
+            if lidar_confidence_at_feature_points[i] == 2:
+                plt.annotate(str(i), (ar_depths[i], lidar_depths_at_feature_points[i]))
+        plt.savefig(os.path.join(root, f"high_conf_lidar_fp_corr_{tag}.png"))
+        plt.savefig(os.path.join(TRIAL_PATH, "data", f"high_conf_lidar_fp_corr_{tag}.png"))
         plt.close()
 
 # delete used files
