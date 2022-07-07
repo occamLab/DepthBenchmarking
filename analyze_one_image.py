@@ -12,6 +12,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import cv2 as cv
 import pyvista as pv
+from math import floor
 from scipy.linalg import inv
 from scipy.stats import spearmanr
 from utils import read_pfm
@@ -99,8 +100,8 @@ for row in projected_fp:
     pixel_row = row[1]
     if 0 <= pixel_col < frame.shape[1] and 0 <= pixel_row < frame.shape[0]:
         midas_depths_at_feature_points.append(midas_depth[pixel_row, pixel_col])
-        lidar_depths_at_feature_points.append(lidar_depth[round(pixel_row / 7.5), round(pixel_col / 7.5)])
-        lidar_confidence_at_feature_points.append(lidar_confidence[round(pixel_row / 7.5), round(pixel_col / 7.5)])
+        lidar_depths_at_feature_points.append(lidar_depth[floor(pixel_row / 7.5), floor(pixel_col / 7.5)])
+        lidar_confidence_at_feature_points.append(lidar_confidence[floor(pixel_row / 7.5), floor(pixel_col / 7.5)])
         inverse_color = tuple(int(x) for x in (255 - frame[pixel_row][pixel_col]))
         cv.circle(frame, (pixel_col, pixel_row), 5, (0, 255, 0), -1)
         cv.putText(frame, str(len(midas_depths_at_feature_points)), \
