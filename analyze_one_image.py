@@ -56,7 +56,7 @@ ar_depths = np.array(ar_depths)
 # change path to acutal if using a different computer
 # get the inverse depth from the PFM file
 inverse_depth = np.array(read_pfm(\
-    "/Users/occamlab/Documents/ARPointCloud/output/frame.pfm")[0])
+    "/Users/angrocki/Desktop/SummerResearch/DepthBenchmarking/output/frame.pfm")[0])
 inverse_depth = np.rot90(inverse_depth)
 # replace negative and close-to-zero erroneous values with NaN
 inverse_depth[inverse_depth<1] = np.nan
@@ -76,11 +76,12 @@ for row in lidar_data:
     y = row[1] * row[3]
     z = row[2] * row[3]
     lidar_depth.append([x,y,z])
-
+'''
 # visualize a 3D point cloud of the LiDAR depth data
 pv_point_cloud = pv.PolyData(lidar_depth)
 print("PyVista loaded")
 pv_point_cloud.plot(render_points_as_spheres=True)
+'''
 
 # extract depth in meters from LiDAR data
 lidar_depth = np.reshape(lidar_depth, (256, 192, 3))[:, :, 2].T * -1
@@ -205,5 +206,26 @@ for i in range(ar_depths.size):
     if lidar_confidence_at_feature_points[i] == 2:
         plt.annotate(str(i), (ar_depths[i], lidar_depths_at_feature_points[i]))
 
-# show the plots
+# calculate line of best fit 
+A = np.vstack([midas_depths_at_feature_points.ravel(), np.ones(len(midas_depths_at_feature_points))]).T
+m, c = np.linalg.lstsq(A, ar_depths.ravel())[0]
+print(f"Midas Absolute Depth = {m}*midas_relative_depth + {c} ")
+
+#plot feature points vs midas
+plt.figure()
+plt.plot(midas_depths_at_feature_points, ar_depths,'o', label='Original data', markersize=10)
+plt.plot(midas_depths_at_feature_points, m*midas_depths_at_feature_points + c, 'r', label= f'Fitted line = ar_depth * {m} + {c}')
+plt.xlabel("Midas Relative Depth")
+plt.ylabel("AR depth")
+plt.title("Midas Relative Depth v. AR Depth")
+plt.legend()
+
+# plot midas absolute depth
+plt.figure()
+midas_absolute = midas_depth * m + c
+plt.pcolor(midas_absolute, cmap="PuBu_r")
+plt.colorbar()
+plt.title("Midas Absolute Depth")
+
+#show the plots
 plt.show()
