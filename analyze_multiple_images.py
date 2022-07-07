@@ -15,11 +15,11 @@ from utils import read_pfm
 
 USER = "HccdFYqmqETaJltQbAe19bnyk2e2"
 TRIAL = "6CCBDFF7-057E-4FB6-A00F-98E659CE5A88"
-TRIAL_PATH = "/Users/occamlab/Documents/DepthData/depth_benchmarking/" + \
+TRIAL_PATH = "/Users/angrocki/Desktop/DepthData/depth_benchmarking/" + \
     USER + "/" + TRIAL
 
-MIDAS_INPUT_PATH = "/Users/occamlab/Documents/ARPointCloud/input"
-MIDAS_OUTPUT_PATH = "/Users/occamlab/Documents/ARPointCloud/output"
+midas_input_path = "/Users/angrocki/Desktop/SummerResearch/DepthBenchmarking/input"
+midas_output_path = "/Users/angrocki/Desktop/SummerResearch/DepthBenchmarking/output"
 
 # use: large, hybrid, phone, old
 # make sure to also change the weight file in the ./weights directory
@@ -150,6 +150,9 @@ for root, dirs, files in os.walk(TRIAL_PATH):
         lidar_depths_at_feature_points = np.array(lidar_depths_at_feature_points)
         lidar_confidence_at_feature_points = np.array(lidar_confidence_at_feature_points)
 
+        if True in np.isnan(midas_depth):
+            midas_depth[midas_depth>=2*max(midas_depths_at_feature_points)] = np.nan
+            
         cv.imwrite(os.path.join(root, f"fp_{tag}.jpg"), frame)
         cv.imwrite(os.path.join(TRIAL_PATH, "data", f"fp_{tag}.jpg"), frame)
 
@@ -261,6 +264,33 @@ for root, dirs, files in os.walk(TRIAL_PATH):
         plt.savefig(os.path.join(TRIAL_PATH, "data", f"high_conf_lidar_fp_corr_{tag}.png"))
         plt.close()
 
+        # calculate line of best fit
+        valid_midas_at_fp = midas_depths_at_feature_points[~np.isnan(midas_depths_at_feature_points)]
+        A = np.vstack([valid_midas_at_fp.ravel(), np.ones(valid_midas_at_fp.size)]).T
+        m, c = np.linalg.lstsq(A, ar_depths[~np.isnan(midas_depths_at_feature_points)].ravel(), rcond=None)[0]
+
+        #plot feature points vs midas
+        plt.figure()
+        plt.plot(valid_midas_at_fp, ar_depths[~np.isnan(midas_depths_at_feature_points)], \
+            'o', label='Original data', markersize=10)
+        plt.plot(valid_midas_at_fp, m*valid_midas_at_fp + c, 'r', \
+            label= f'Fitted line = ar_depth * {m} + {c}')
+        plt.xlabel("Midas Relative Depth")
+        plt.ylabel("AR depth")
+        plt.title("Midas Relative Depth v. AR Depth")
+        plt.legend()
+        plt.savefig(os.path.join(root, f"relative_midas_ar_depth_{tag}.png"))
+        plt.savefig(os.path.join(TRIAL_PATH, "data", f"relative_midas_ar_depth_{tag}.png"))
+        plt.close()
+        # plot midas absolute depth
+        plt.figure()
+        midas_absolute = midas_depth * m + c
+        plt.pcolor(midas_absolute, cmap="PuBu_r")
+        plt.colorbar()
+        plt.title("Midas Absolute Depth")
+        plt.savefig(os.path.join(root, f"midas_absolute_depth_{tag}.png"))
+        plt.savefig(os.path.join(TRIAL_PATH, "data", f"midas_absolute_depth_{tag}.png"))
+        plt.close()
 if RUN_MIDAS:
     # delete used files
     for file in os.listdir(MIDAS_INPUT_PATH):
