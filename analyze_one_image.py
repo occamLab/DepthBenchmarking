@@ -11,11 +11,11 @@ import json
 import numpy as np
 import matplotlib.pyplot as plt
 import cv2 as cv
+import open3d as o3d
 from math import floor
 from scipy.linalg import inv
 from scipy.stats import spearmanr
 from utils import read_pfm
-import open3d as o3d
 
 # load captured frame
 frame = cv.imread("input/frame.jpg")
@@ -78,7 +78,7 @@ for row in lidar_data:
     lidar_depth.append([x,y,z])
 lidar_depth = np.array(lidar_depth)
 
-# Plot Lidar Depth
+# plot Lidar Depth
 pcd = o3d.geometry.PointCloud()
 point_cloud = np.asarray(np.array(lidar_depth))
 pcd.points = o3d.utility.Vector3dVector(point_cloud)
@@ -259,13 +259,13 @@ midas_absolute = midas_depth * m + c
 plt.pcolor(mida
 plt.title("Midas Absolute Depth(OTHER EQUATION)")
 '''
-#Create midas point cloud 
+# create midas point cloud 
 midas_point_cloud = []
 
 for pixel_row in range(midas_absolute.shape[0]):
     for pixel_col in range(midas_absolute.shape[1]):
-        x = (pixel_row - offset_x - 0.5) * midas_absolute[pixel_row][pixel_col] / focal_length
-        y = (pixel_col - offset_y - 0.5) * midas_absolute[pixel_row][pixel_col] / focal_length
+        x = (pixel_col - offset_x - 0.5) * midas_absolute[pixel_row][pixel_col] / focal_length
+        y = (pixel_row - offset_y - 0.5) * midas_absolute[pixel_row][pixel_col] / focal_length
         midas_point_cloud.append((x, -y, -midas_absolute[pixel_row][pixel_col]))
         
 pcd = o3d.geometry.PointCloud()
@@ -276,5 +276,5 @@ pcd = pcd.normalize_normals()
 o3d.visualization.draw_geometries([pcd])
 np.savetxt("midas_point_cloud.csv", midas_point_cloud, delimiter=",")
 
-#show the plots
+# show the plots
 plt.show()
