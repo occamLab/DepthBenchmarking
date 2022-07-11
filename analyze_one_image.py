@@ -11,7 +11,6 @@ import json
 import numpy as np
 import matplotlib.pyplot as plt
 import cv2 as cv
-import pyvista as pv
 from math import floor
 from scipy.linalg import inv
 from scipy.stats import spearmanr
@@ -77,14 +76,9 @@ for row in lidar_data:
     y = row[1] * row[3]
     z = row[2] * row[3]
     lidar_depth.append([x,y,z])
-'''
-# visualize a 3D point cloud of the LiDAR depth data
-pv_point_cloud = pv.PolyData(lidar_depth)
-print("PyVista loaded")
-pv_point_cloud.plot(render_points_as_spheres=True)
-'''
 lidar_depth = np.array(lidar_depth)
-#New method
+
+# Plot Lidar Depth
 pcd = o3d.geometry.PointCloud()
 point_cloud = np.asarray(np.array(lidar_depth))
 pcd.points = o3d.utility.Vector3dVector(point_cloud)
@@ -265,14 +259,14 @@ midas_absolute = midas_depth * m + c
 plt.pcolor(mida
 plt.title("Midas Absolute Depth(OTHER EQUATION)")
 '''
-#Create a point cloud 
+#Create midas point cloud 
 midas_point_cloud = []
 
-for pixel_col in range(midas_absolute.shape[0]):
-    for pixel_row in range(midas_absolute.shape[1]):
-        x = (pixel_col * midas_absolute[pixel_col][pixel_row] - offset_x - 0.5) / focal_length
-        y = (pixel_row * midas_absolute[pixel_col][pixel_row] - offset_y - 0.5) / focal_length
-        midas_point_cloud.append((x, -y, -midas_absolute[pixel_col][pixel_row]))
+for pixel_row in range(midas_absolute.shape[0]):
+    for pixel_col in range(midas_absolute.shape[1]):
+        x = (pixel_col * midas_absolute[pixel_row][pixel_col] - offset_x - 0.5) / focal_length
+        y = (pixel_row * midas_absolute[pixel_row][pixel_col] - offset_y - 0.5) / focal_length
+        midas_point_cloud.append((x, -y, -midas_absolute[pixel_row][pixel_col]))
         
 pcd = o3d.geometry.PointCloud()
 point_cloud = np.asarray(np.array(midas_point_cloud))
@@ -280,10 +274,6 @@ pcd.points = o3d.utility.Vector3dVector(point_cloud)
 pcd.estimate_normals()
 pcd = pcd.normalize_normals()
 o3d.visualization.draw_geometries([pcd])
-
-pv_point_cloud = pv.PolyData(midas_point_cloud)
-print("PyVista loaded")
-pv_point_cloud.plot(render_points_as_spheres=True)
 np.savetxt("midas_point_cloud.csv", midas_point_cloud, delimiter=",")
 
 #show the plots
