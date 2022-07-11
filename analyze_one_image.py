@@ -16,6 +16,7 @@ from math import floor
 from scipy.linalg import inv
 from scipy.stats import spearmanr
 from utils import read_pfm
+import open3d as o3d
 
 # load captured frame
 frame = cv.imread("input/frame.jpg")
@@ -56,7 +57,7 @@ ar_depths = np.array(ar_depths)
 # change path to acutal if using a different computer
 # get the inverse depth from the PFM file
 inverse_depth = np.array(read_pfm(\
-    "/Users/occamlab/Documents/ARPointCloud/output/frame.pfm")[0])
+    "/Users/angrocki/Desktop/SummerResearch/DepthBenchmarking/output/frame.pfm")[0])
 inverse_depth = np.rot90(inverse_depth)
 # replace negative and close-to-zero erroneous values with NaN
 inverse_depth[inverse_depth<1] = np.nan
@@ -82,6 +83,15 @@ pv_point_cloud = pv.PolyData(lidar_depth)
 print("PyVista loaded")
 pv_point_cloud.plot(render_points_as_spheres=True)
 '''
+lidar_depth = np.array(lidar_depth)
+#New method
+pcd = o3d.geometry.PointCloud()
+point_cloud = np.asarray(np.array(lidar_depth))
+pcd.points = o3d.utility.Vector3dVector(point_cloud)
+pcd.estimate_normals()
+pcd = pcd.normalize_normals()
+o3d.visualization.draw_geometries([pcd])
+np.savetxt("lidar_depth.csv", lidar_depth, delimiter=",")
 
 # extract depth in meters from LiDAR data
 lidar_depth = np.reshape(lidar_depth, (256, 192, 3))[:, :, 2].T * -1
@@ -125,7 +135,7 @@ for i in range(lidar_depth.shape[0]):
         midas_extracted.append(midas_depth[round(3.75 + 7.5 * i), \
             round(3.75 + 7.5 * j)])
 midas_extracted = np.reshape(midas_extracted, (192, 256))
-
+'''
 # print out correlations between LiDAR and MiDaS data
 print("Correlation:", \
     np.corrcoef(np.ravel(lidar_depth[~np.isnan(midas_extracted)]), \
@@ -146,7 +156,7 @@ print("ARKit-MiDaS Correlation:", \
     np.ravel(midas_depths_at_feature_points[~np.isnan(midas_depths_at_feature_points)]))[0][1])
 print(spearmanr(np.ravel(ar_depths[~np.isnan(midas_depths_at_feature_points)]), \
     np.ravel(midas_depths_at_feature_points[~np.isnan(midas_depths_at_feature_points)])))
-
+'''
 # create a plot comparing LiDAR vs MiDaS and Feature Points vs MiDaS
 plt.figure()
 plt.scatter(lidar_depth, midas_extracted, label="LiDAR", s=0.5, alpha=0.5)
@@ -229,9 +239,52 @@ plt.legend()
 # plot midas absolute depth
 plt.figure()
 midas_absolute = midas_depth * m + c
+'''
 plt.pcolor(midas_absolute, cmap="PuBu_r")
 plt.colorbar()
 plt.title("Midas Absolute Depth")
+'''
+'''
+# Change of Equations
+#Plot midas = m * 1/d + b
+midas_depths_at_feature_points = []
+for row in projected_fp:
+    pixel_col = row[0]
+    pixel_row = row[1]
+    if 0 <= pixel_col < frame.shape[1] and 0 <= pixel_row < frame.shape[0]:
+        midas_depths_at_feature_points.append(inverse_depth[pixel_row, pixel_col])
+midas_depths_at_feature_points = np.array(midas_depths_at_feature_points)
+valid_midas_at_fp = midas_depths_at_feature_points[~np.isnan(midas_depths_at_feature_points)]
+A = np.vstack([valid_midas_at_fp.ravel(), np.ones(len(valid_midas_at_fp))]).T
+m, c = np.linalg.lstsq(A, 1/ar_depths.ravel())[0]
+
+
+#plot midas absolute depth
+plt.figure()
+midas_absolute = midas_depth * m + c
+plt.pcolor(mida
+plt.title("Midas Absolute Depth(OTHER EQUATION)")
+'''
+#Create a point cloud 
+midas_point_cloud = []
+
+for pixel_col in range(midas_absolute.shape[0]):
+    for pixel_row in range(midas_absolute.shape[1]):
+        x = (pixel_col * midas_absolute[pixel_col][pixel_row] - offset_x - 0.5) / focal_length
+        y = (pixel_row * midas_absolute[pixel_col][pixel_row] - offset_y - 0.5) / focal_length
+        midas_point_cloud.append((x, -y, -midas_absolute[pixel_col][pixel_row]))
+        
+pcd = o3d.geometry.PointCloud()
+point_cloud = np.asarray(np.array(midas_point_cloud))
+pcd.points = o3d.utility.Vector3dVector(point_cloud)
+pcd.estimate_normals()
+pcd = pcd.normalize_normals()
+o3d.visualization.draw_geometries([pcd])
+
+pv_point_cloud = pv.PolyData(midas_point_cloud)
+print("PyVista loaded")
+pv_point_cloud.plot(render_points_as_spheres=True)
+np.savetxt("midas_point_cloud.csv", midas_point_cloud, delimiter=",")
 
 #show the plots
 plt.show()
