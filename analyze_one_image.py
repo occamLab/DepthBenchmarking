@@ -62,13 +62,13 @@ inverse_depth = np.rot90(inverse_depth)
 inverse_depth[inverse_depth<1] = np.nan
 # get the MiDaS depth by taking the reciprocal of the inverse depth
 midas_depth = np.reciprocal(inverse_depth)
-"""
+
 # create a figure representing the MiDaS depths
 plt.figure()
 plt.pcolor(midas_depth, cmap="PuRd_r")
 plt.colorbar()
 plt.title("Visualization of MiDaS Depths")
-"""
+
 # scale LiDAR data
 lidar_depth = []
 for row in lidar_data:
@@ -89,13 +89,13 @@ np.savetxt("lidar_depth.csv", lidar_depth, delimiter=",")
 
 # extract depth in meters from LiDAR data
 lidar_depth = np.reshape(lidar_depth, (256, 192, 3))[:, :, 2].T * -1
-"""
+
 # create a figure representing the LiDAR depths
 plt.figure()
 plt.pcolor(lidar_depth, cmap="PuBu_r")
 plt.colorbar()
 plt.title("LiDAR Depth")
-"""
+
 # get MiDaS depth values from pixels with feature points
 midas_depths_at_feature_points = []
 lidar_depths_at_feature_points = []
@@ -264,8 +264,8 @@ midas_point_cloud = []
 
 for pixel_row in range(midas_absolute.shape[0]):
     for pixel_col in range(midas_absolute.shape[1]):
-        x = (pixel_col * midas_absolute[pixel_row][pixel_col] - offset_x - 0.5) / focal_length
-        y = (pixel_row * midas_absolute[pixel_row][pixel_col] - offset_y - 0.5) / focal_length
+        x = (pixel_row - offset_x - 0.5) * midas_absolute[pixel_row][pixel_col] / focal_length
+        y = (pixel_col - offset_y - 0.5) * midas_absolute[pixel_row][pixel_col] / focal_length
         midas_point_cloud.append((x, -y, -midas_absolute[pixel_row][pixel_col]))
         
 pcd = o3d.geometry.PointCloud()
