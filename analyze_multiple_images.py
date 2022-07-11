@@ -8,6 +8,7 @@ import json
 import numpy as np
 import matplotlib.pyplot as plt
 import cv2 as cv
+from sklearn.linear_model import RANSACRegressor
 from math import floor
 from scipy.linalg import inv
 from scipy.stats import spearmanr
@@ -15,11 +16,11 @@ from utils import read_pfm
 
 USER = "HccdFYqmqETaJltQbAe19bnyk2e2"
 TRIAL = "6CCBDFF7-057E-4FB6-A00F-98E659CE5A88"
-TRIAL_PATH = "/Users/angrocki/Desktop/DepthData/depth_benchmarking/" + \
+TRIAL_PATH = "/Users/occamlab/Documents/DepthData/depth_benchmarking/" + \
     USER + "/" + TRIAL
 
-midas_input_path = "/Users/angrocki/Desktop/SummerResearch/DepthBenchmarking/input"
-midas_output_path = "/Users/angrocki/Desktop/SummerResearch/DepthBenchmarking/output"
+MIDAS_INPUT_PATH = "/Users/occamlab/Documents/ARPointCloud/input"
+MIDAS_OUTPUT_PATH = "/Users/occamlab/Documents/ARPointCloud/output"
 
 # use: large, hybrid, phone, old
 # make sure to also change the weight file in the ./weights directory
@@ -44,6 +45,7 @@ if RUN_MIDAS:
         if extension in (".png", ".pfm"):
             os.remove(os.path.join(MIDAS_OUTPUT_PATH, file))
 
+    # copy the rotated version of the images into the MiDaS input folder
     for root, dirs, files in os.walk(TRIAL_PATH):
         for file in files:
             if file == "frame.jpg":
@@ -53,8 +55,10 @@ if RUN_MIDAS:
                 frame = cv.imread(os.path.join(MIDAS_INPUT_PATH, new_name))
                 cv.imwrite(os.path.join(MIDAS_INPUT_PATH, new_name), cv.rotate(frame, cv.ROTATE_90_CLOCKWISE))
 
+    # run MiDaS
     os.system("python run.py --model_type " + midas_weights[WEIGHT_USED][1])
 
+    # copy the PNG and PFM files from the output 
     for file in os.listdir(MIDAS_OUTPUT_PATH):
         name, extension = os.path.splitext(file)
         if extension in (".png", ".pfm"):
@@ -66,27 +70,34 @@ if RUN_MIDAS:
             except:
                 continue
 
-
+# create a data folder in the trial folder if it doesn't exist
 if os.path.exists(TRIAL_PATH) and not os.path.exists(os.path.join(TRIAL_PATH, "data")):
     os.makedirs(os.path.join(TRIAL_PATH, "data"))
 
 for root, dirs, files in os.walk(TRIAL_PATH):
+    # only run analysis if the JSON file with the metadata is in the folder
     if "framemetadata.json" in files:
         for file in files:
             name, extension = os.path.splitext(file)
 
+            # read the image captured by the camera
             if file == "frame.jpg":
                 frame = cv.imread(os.path.join(root, file))
 
+            # read the PFM file
             if extension == ".pfm" and name[-2:] == midas_weights[WEIGHT_USED][0]:
                 inverse_depth = np.array(read_pfm(os.path.join(root, file))[0])
+                # rotate PFM data to match image read above
                 inverse_depth = np.rot90(inverse_depth)
+                # remove some outliers
                 inverse_depth[inverse_depth<1] = np.nan
 
+            # load the data from the JSON file
             if file == "framemetadata.json":
                 with open(os.path.join(root, file)) as my_file:
                     data = json.load(my_file)
 
+        # create a unique ID tag for the current trial and model of MiDaS run
         tag = USER[0:3] + "_" + TRIAL[0:3] + "_" + root[-4:] + \
                 midas_weights[WEIGHT_USED][0]
 
@@ -107,7 +118,7 @@ for root, dirs, files in os.walk(TRIAL_PATH):
         phone_fp = inv(pose) @ raw_fp
         camera_fp = np.array((phone_fp[0], -phone_fp[1], -phone_fp[2])).T
 
-        # calculate depths and pixels of feature points
+        # calculate depths of feature points
         ar_depths = []
         for row in camera_fp:
             pixel_col = row[0] * focal_length / row[2] + offset_x + 0.5
@@ -117,8 +128,10 @@ for root, dirs, files in os.walk(TRIAL_PATH):
                 ar_depths.append(row[2])
         ar_depths = np.array(ar_depths)
 
+        # get the MiDaS depth by taking the reciprocal of the MiDaS output
         midas_depth = np.reciprocal(inverse_depth)
 
+        # scale LiDAR data
         lidar_depth = []
         for row in lidar_data:
             x = row[0] * row[3]
@@ -126,9 +139,10 @@ for root, dirs, files in os.walk(TRIAL_PATH):
             z = row[2] * row[3]
             lidar_depth.append([x,y,z])
 
+        # extract depth from the properly scaled LiDAR data
         lidar_depth = np.reshape(lidar_depth, (256, 192, 3))[:, :, 2].T * -1
 
-        # get MiDaS depth values from pixels with feature points
+        # get MiDaS and LiDAR depth values from pixels with feature points
         midas_depths_at_feature_points = []
         lidar_depths_at_feature_points = []
         lidar_confidence_at_feature_points = []
@@ -142,6 +156,7 @@ for root, dirs, files in os.walk(TRIAL_PATH):
                 lidar_confidence_at_feature_points.append(lidar_confidence\
                     [floor(pixel_row / 7.5), floor(pixel_col / 7.5)])
                 inverse_color = tuple(int(x) for x in (255 - frame[pixel_row][pixel_col]))
+                # draw circles and numbers to mark feature points on the image
                 cv.circle(frame, (pixel_col, pixel_row), 5, (0, 255, 0), -1)
                 cv.putText(frame, str(len(midas_depths_at_feature_points)), \
                     (pixel_col, pixel_row), cv.FONT_HERSHEY_COMPLEX, 1, inverse_color)
@@ -150,9 +165,11 @@ for root, dirs, files in os.walk(TRIAL_PATH):
         lidar_depths_at_feature_points = np.array(lidar_depths_at_feature_points)
         lidar_confidence_at_feature_points = np.array(lidar_confidence_at_feature_points)
 
+        # remove more outliers
         if True in np.isnan(midas_depth):
             midas_depth[midas_depth>=2*max(midas_depths_at_feature_points)] = np.nan
             
+        # save the image marked with feature points
         cv.imwrite(os.path.join(root, f"fp_{tag}.jpg"), frame)
         cv.imwrite(os.path.join(TRIAL_PATH, "data", f"fp_{tag}.jpg"), frame)
 
@@ -163,7 +180,7 @@ for root, dirs, files in os.walk(TRIAL_PATH):
                 midas_extracted.append(midas_depth[round(3.75 + 7.5 * i), round(3.75 + 7.5 * j)])
         midas_extracted = np.reshape(midas_extracted, (192, 256))
 
-        # calculate correlation data
+        # calculate correlations
         lidar_midas_correlation = np.corrcoef(np.ravel(lidar_depth[~np.isnan(midas_extracted)]), \
             np.ravel(midas_extracted[~np.isnan(midas_extracted)]))[0][1]
         less_than_five_corr = np.corrcoef(np.ravel(lidar_depth[(lidar_depth<5) & (~np.isnan(midas_extracted))]), \
@@ -202,6 +219,7 @@ for root, dirs, files in os.walk(TRIAL_PATH):
         plt.savefig(os.path.join(root, f"scatter_{tag}.png"))
         plt.savefig(os.path.join(TRIAL_PATH, "data", f"scatter_{tag}.png"))
         plt.close()
+
         """
         # create a plot of LiDAR and Midas correlation for only high confidence points 
         plt.figure()
@@ -221,7 +239,7 @@ for root, dirs, files in os.walk(TRIAL_PATH):
         plt.savefig(os.path.join(root, f"high_conf_corr_{tag}.png"))
         plt.savefig(os.path.join(TRIAL_PATH, "data", f"high_conf_corr_{tag}.png"))
         plt.close()
-        
+
         # create a plot of LiDAR and Midas correlation for distances less than five meters 
         plt.figure()
         less_five_lidar = lidar_depth.copy()
@@ -240,6 +258,7 @@ for root, dirs, files in os.walk(TRIAL_PATH):
         plt.savefig(os.path.join(TRIAL_PATH, "data", f"less_five_corr_{tag}.png"))
         plt.close()
         """
+
         plt.figure()
         plt.scatter(ar_depths, lidar_depths_at_feature_points)
         plt.xlabel("Feature Points")
@@ -265,40 +284,51 @@ for root, dirs, files in os.walk(TRIAL_PATH):
         plt.close()
 
         # calculate line of best fit
-        valid_midas_at_fp = midas_depths_at_feature_points[~np.isnan(midas_depths_at_feature_points)]
-        A = np.vstack([valid_midas_at_fp.ravel(), np.ones(valid_midas_at_fp.size)]).T
-        m, c = np.linalg.lstsq(A, ar_depths[~np.isnan(midas_depths_at_feature_points)].ravel(), rcond=None)[0]
+        if len(ar_depths[~np.isnan(midas_depths_at_feature_points)]) > 10:
+            valid_midas_at_fp = midas_depths_at_feature_points[~np.isnan(midas_depths_at_feature_points)]
+            A = np.vstack([valid_midas_at_fp.ravel(), np.ones(valid_midas_at_fp.size)]).T
 
-        #plot feature points vs midas
-        plt.figure()
-        plt.plot(valid_midas_at_fp, ar_depths[~np.isnan(midas_depths_at_feature_points)], \
-            'o', label='Original data', markersize=10)
-        plt.plot(valid_midas_at_fp, m*valid_midas_at_fp + c, 'r', \
-            label= f'Fitted line = ar_depth * {m} + {c}')
-        plt.xlabel("Midas Relative Depth")
-        plt.ylabel("AR depth")
-        plt.title("Midas Relative Depth v. AR Depth")
-        plt.legend()
-        plt.savefig(os.path.join(root, f"relative_midas_ar_depth_{tag}.png"))
-        plt.savefig(os.path.join(TRIAL_PATH, "data", f"relative_midas_ar_depth_{tag}.png"))
-        plt.close()
+            ransac = RANSACRegressor(max_trials=150)
+            ransac.fit(A, ar_depths[~np.isnan(midas_depths_at_feature_points)].ravel())
+            ransac_prediction = ransac.predict(A)
+
+            m, b = np.linalg.lstsq(A, ransac_prediction, rcond=None)[0]
+            m2, b2 = np.linalg.lstsq(A, ar_depths[~np.isnan(midas_depths_at_feature_points)], rcond=None)[0]
+
+            #plot feature points vs midas
+            plt.figure()
+            plt.plot(valid_midas_at_fp, ar_depths[~np.isnan(midas_depths_at_feature_points)], \
+                'o', label='Original data', markersize=5)
+            plt.plot(valid_midas_at_fp, valid_midas_at_fp * m2 + b2, c="orange", label="Lstsq")
+            plt.plot(valid_midas_at_fp, ransac_prediction, c="r", label="RANSAC")
+            plt.xlabel("Midas Relative Depth")
+            plt.ylabel("AR depth (m)")
+            plt.title("Midas Relative Depth v. AR Depth")
+            plt.legend()
+            plt.savefig(os.path.join(root, f"relative_midas_ar_depth_{tag}.png"))
+            plt.savefig(os.path.join(TRIAL_PATH, "data", f"relative_midas_ar_depth_{tag}.png"))
+            plt.close()
+
+        """
         # plot midas absolute depth
         plt.figure()
-        midas_absolute = midas_depth * m + c
-        plt.pcolor(midas_absolute, cmap="PuBu_r")
+        midas_absolute_ransac = midas_depth * m + b
+        plt.pcolor(midas_absolute_ransac, cmap="PuBu_r")
+        plt.title("MiDaS Depth Scaled According to RANSAC")
         plt.colorbar()
-        plt.title("Midas Absolute Depth")
         plt.savefig(os.path.join(root, f"midas_absolute_depth_{tag}.png"))
         plt.savefig(os.path.join(TRIAL_PATH, "data", f"midas_absolute_depth_{tag}.png"))
         plt.close()
-if RUN_MIDAS:
-    # delete used files
-    for file in os.listdir(MIDAS_INPUT_PATH):
-        name, extension = os.path.splitext(file)
-        if extension == ".jpg":
-            os.remove(os.path.join(MIDAS_INPUT_PATH, file))
+        print(tag)
+        """
 
-    for file in os.listdir(MIDAS_OUTPUT_PATH):
-        name, extension = os.path.splitext(file)
-        if extension in (".png", ".pfm"):
-            os.remove(os.path.join(MIDAS_OUTPUT_PATH, file))
+# delete used files
+for file in os.listdir(MIDAS_INPUT_PATH):
+    name, extension = os.path.splitext(file)
+    if extension == ".jpg":
+        os.remove(os.path.join(MIDAS_INPUT_PATH, file))
+
+for file in os.listdir(MIDAS_OUTPUT_PATH):
+    name, extension = os.path.splitext(file)
+    if extension in (".png", ".pfm"):
+        os.remove(os.path.join(MIDAS_OUTPUT_PATH, file))
