@@ -270,6 +270,7 @@ for root, dirs, files in os.walk(TRIAL_PATH):
         plt.savefig(os.path.join(TRIAL_PATH, "data", f"lidar_fp_corr_{tag}.png"))
         plt.close()
 
+        """
         plt.figure()
         plt.scatter(ar_depths[lidar_confidence_at_feature_points==2], \
             lidar_depths_at_feature_points[lidar_confidence_at_feature_points==2], c="g")
@@ -282,6 +283,7 @@ for root, dirs, files in os.walk(TRIAL_PATH):
         plt.savefig(os.path.join(root, f"high_conf_lidar_fp_corr_{tag}.png"))
         plt.savefig(os.path.join(TRIAL_PATH, "data", f"high_conf_lidar_fp_corr_{tag}.png"))
         plt.close()
+        """
 
         # calculate line of best fit
         if len(ar_depths[~np.isnan(midas_depths_at_feature_points)]) > 10:
@@ -305,8 +307,8 @@ for root, dirs, files in os.walk(TRIAL_PATH):
             plt.ylabel("AR depth (m)")
             plt.title("Midas Relative Depth v. AR Depth")
             plt.legend()
-            plt.savefig(os.path.join(root, f"relative_midas_ar_depth_{tag}.png"))
-            plt.savefig(os.path.join(TRIAL_PATH, "data", f"relative_midas_ar_depth_{tag}.png"))
+            plt.savefig(os.path.join(root, f"linear_fit_midas_ar_{tag}.png"))
+            plt.savefig(os.path.join(TRIAL_PATH, "data", f"linear_fit_midas_ar_{tag}.png"))
             plt.close()
 
         """
