@@ -81,10 +81,7 @@ lidar_depth = np.array(lidar_depth)
 
 # plot Lidar Depth
 pcd = o3d.geometry.PointCloud()
-point_cloud = np.asarray(np.array(lidar_depth))
-pcd.points = o3d.utility.Vector3dVector(point_cloud)
-pcd.estimate_normals()
-pcd = pcd.normalize_normals()
+pcd.points = o3d.utility.Vector3dVector(lidar_depth)
 o3d.visualization.draw_geometries([pcd])
 np.savetxt("lidar_depth.csv", lidar_depth, delimiter=",")
 
@@ -273,10 +270,8 @@ for pixel_row in range(midas_absolute.shape[0]):
         midas_point_cloud.append((x, -y, -midas_absolute[pixel_row][pixel_col]))
 
 pcd = o3d.geometry.PointCloud()
-point_cloud = np.asarray(np.array(midas_point_cloud))
+point_cloud = np.asarray(midas_point_cloud)
 pcd.points = o3d.utility.Vector3dVector(point_cloud)
-pcd.estimate_normals()
-pcd = pcd.normalize_normals()
 o3d.visualization.draw_geometries([pcd])
 np.savetxt("midas_point_cloud.csv", midas_point_cloud, delimiter=",")
 
