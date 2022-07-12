@@ -8,11 +8,12 @@ this file for analysis.
 """
 
 import json
+from math import floor
 import numpy as np
 import matplotlib.pyplot as plt
 import cv2 as cv
 import open3d as o3d
-from math import floor
+from sklearn.linear_model import RANSACRegressor
 from scipy.linalg import inv
 from scipy.stats import spearmanr
 from utils import read_pfm
@@ -56,7 +57,7 @@ ar_depths = np.array(ar_depths)
 # change path to acutal if using a different computer
 # get the inverse depth from the PFM file
 inverse_depth = np.array(read_pfm(\
-    "/Users/angrocki/Desktop/SummerResearch/DepthBenchmarking/output/frame.pfm")[0])
+    "/Users/occamlab/Documents/ARPointCloud/output/frame.pfm")[0])
 inverse_depth = np.rot90(inverse_depth)
 # replace negative and close-to-zero erroneous values with NaN
 inverse_depth[inverse_depth<1] = np.nan
@@ -107,7 +108,7 @@ for row in projected_fp:
         midas_depths_at_feature_points.append(midas_depth[pixel_row, pixel_col])
         lidar_depths_at_feature_points.append(lidar_depth[floor(pixel_row / 7.5), floor(pixel_col / 7.5)])
         lidar_confidence_at_feature_points.append(lidar_confidence[floor(pixel_row / 7.5), floor(pixel_col / 7.5)])
-        inverse_color = tuple(int(x) for x in (255 - frame[pixel_row][pixel_col]))
+        inverse_color = tuple(int(x) for x in 255 - frame[pixel_row][pixel_col])
         cv.circle(frame, (pixel_col, pixel_row), 5, (0, 255, 0), -1)
         cv.putText(frame, str(len(midas_depths_at_feature_points)), \
             (pixel_col, pixel_row), cv.FONT_HERSHEY_COMPLEX, 1, inverse_color)
@@ -120,7 +121,7 @@ lidar_confidence_at_feature_points = np.array(lidar_confidence_at_feature_points
 cv.imwrite("output/featurepoints.jpg", frame)
 
 if True in np.isnan(midas_depth):
-            midas_depth[midas_depth>=2*max(midas_depths_at_feature_points)] = np.nan
+    midas_depth[midas_depth>=2*max(midas_depths_at_feature_points)] = np.nan
 
 # scale the MiDaS output to the size of the LiDAR depth data
 midas_extracted = []
@@ -216,29 +217,32 @@ for i in range(ar_depths.size):
 # calculate line of best fit
 valid_midas_at_fp = midas_depths_at_feature_points[~np.isnan(midas_depths_at_feature_points)]
 A = np.vstack([valid_midas_at_fp.ravel(), np.ones(valid_midas_at_fp.size)]).T
-m, c = np.linalg.lstsq(A, ar_depths[~np.isnan(midas_depths_at_feature_points)].ravel())[0]
-print(f"Midas Absolute Depth = {m}*midas_relative_depth + {c} ")
+
+ransac = RANSACRegressor(max_trials=150)
+ransac.fit(A, ar_depths[~np.isnan(midas_depths_at_feature_points)].ravel())
+ransac_prediction = ransac.predict(A)
+
+m, b = np.linalg.lstsq(A, ransac_prediction, rcond=None)[0]
 
 #plot feature points vs midas
 plt.figure()
 plt.plot(valid_midas_at_fp, ar_depths[~np.isnan(midas_depths_at_feature_points)], \
     'o', label='Original data', markersize=10)
-plt.plot(valid_midas_at_fp, m*valid_midas_at_fp + c, 'r', \
-    label= f'Fitted line = ar_depth * {m} + {c}')
+plt.plot(valid_midas_at_fp, m*valid_midas_at_fp + b, 'r', \
+    label= f'Fitted line = ar_depth * {m} + {b}')
 plt.xlabel("Midas Relative Depth")
 plt.ylabel("AR depth")
 plt.title("Midas Relative Depth v. AR Depth")
 plt.legend()
 
-# plot midas absolute depth
+midas_absolute = m * midas_extracted + b
+
+"""
 plt.figure()
-midas_absolute = midas_depth * m + c
-'''
 plt.pcolor(midas_absolute, cmap="PuBu_r")
 plt.colorbar()
 plt.title("Midas Absolute Depth")
-'''
-'''
+
 # Change of Equations
 #Plot midas = m * 1/d + b
 midas_depths_at_feature_points = []
@@ -258,16 +262,16 @@ plt.figure()
 midas_absolute = midas_depth * m + c
 plt.pcolor(mida
 plt.title("Midas Absolute Depth(OTHER EQUATION)")
-'''
-# create midas point cloud 
+"""
+# create midas point cloud
 midas_point_cloud = []
 
 for pixel_row in range(midas_absolute.shape[0]):
     for pixel_col in range(midas_absolute.shape[1]):
-        x = (pixel_col - offset_x - 0.5) * midas_absolute[pixel_row][pixel_col] / focal_length
-        y = (pixel_row - offset_y - 0.5) * midas_absolute[pixel_row][pixel_col] / focal_length
+        x = (pixel_col * 7.5 + 3.75 - offset_x - 0.5) * midas_absolute[pixel_row][pixel_col] / focal_length
+        y = (pixel_row * 7.5 + 3.75 - offset_y - 0.5) * midas_absolute[pixel_row][pixel_col] / focal_length
         midas_point_cloud.append((x, -y, -midas_absolute[pixel_row][pixel_col]))
-        
+
 pcd = o3d.geometry.PointCloud()
 point_cloud = np.asarray(np.array(midas_point_cloud))
 pcd.points = o3d.utility.Vector3dVector(point_cloud)
