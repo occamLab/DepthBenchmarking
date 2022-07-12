@@ -1,8 +1,6 @@
 % Needs to be in the same folder as the files
-lidardepth = readtable("lidar_depth.csv");
-midaspointcloud = readtable('midas_point_cloud.csv');
-lidar_depth = lidardepth{:,:};
-midas_depth = midaspointcloud{:,:};
+lidar_depth = load("lidar_depth.csv");
+midas_depth = load('midas_point_cloud.csv');
 lidar_point_cloud = pointCloud(lidar_depth);
 midas_point_cloud = pointCloud(midas_depth);
 
