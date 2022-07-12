@@ -15,18 +15,18 @@ from scipy.stats import spearmanr
 from utils import read_pfm
 
 USER = "HccdFYqmqETaJltQbAe19bnyk2e2"
-TRIAL = "6CCBDFF7-057E-4FB6-A00F-98E659CE5A88"
-TRIAL_PATH = "/Users/occamlab/Documents/DepthData/depth_benchmarking/" + \
+TRIAL = "3F2B13D6-443F-4B5B-9CCD-2DB0AB887296"
+TRIAL_PATH = "/Users/angrocki/Desktop/DepthData/depth_benchmarking/" + \
     USER + "/" + TRIAL
 
-MIDAS_INPUT_PATH = "/Users/occamlab/Documents/ARPointCloud/input"
-MIDAS_OUTPUT_PATH = "/Users/occamlab/Documents/ARPointCloud/output"
+MIDAS_INPUT_PATH = "/Users/angrocki/Desktop/SummerResearch/DepthBenchmarking/input"
+MIDAS_OUTPUT_PATH = "/Users/angrocki/Desktop/SummerResearch/DepthBenchmarking/output"
 
 # use: large, hybrid, phone, old
 # make sure to also change the weight file in the ./weights directory
 WEIGHT_USED = "phone"
 
-RUN_MIDAS = False
+RUN_MIDAS = True
 
 # BEFORE RUNNING, MAKE SURE ALL PATHS AND FILE REFERENCES ARE CORRECT
 
@@ -138,6 +138,10 @@ for root, dirs, files in os.walk(TRIAL_PATH):
             y = row[1] * row[3]
             z = row[2] * row[3]
             lidar_depth.append([x,y,z])
+        
+        # save LiDAR point cloud to cvs file
+        lidar_depth = np.array(lidar_depth)
+        np.savetxt((os.path.join(root, f"lidar_depth.csv")), lidar_depth, delimiter=",")
 
         # extract depth from the properly scaled LiDAR data
         lidar_depth = np.reshape(lidar_depth, (256, 192, 3))[:, :, 2].T * -1
@@ -166,7 +170,7 @@ for root, dirs, files in os.walk(TRIAL_PATH):
         lidar_confidence_at_feature_points = np.array(lidar_confidence_at_feature_points)
 
         # remove more outliers
-        if True in np.isnan(midas_depth):
+        if True in np.isnan(midas_depth) and midas_depths_at_feature_points.size > 0:
             midas_depth[midas_depth>=2*max(midas_depths_at_feature_points)] = np.nan
             
         # save the image marked with feature points
@@ -310,12 +314,22 @@ for root, dirs, files in os.walk(TRIAL_PATH):
             plt.savefig(os.path.join(root, f"linear_fit_midas_ar_{tag}.png"))
             plt.savefig(os.path.join(TRIAL_PATH, "data", f"linear_fit_midas_ar_{tag}.png"))
             plt.close()
+            midas_absolute = m * midas_extracted + b
+            # create midas point cloud
+            midas_point_cloud = []
+            for pixel_row in range(midas_absolute.shape[0]):
+                for pixel_col in range(midas_absolute.shape[1]):
+                    x = (pixel_col * 7.5 + 3.75 - offset_x - 0.5) * midas_absolute[pixel_row][pixel_col] / focal_length
+                    y = (pixel_row * 7.5 + 3.75 - offset_y - 0.5) * midas_absolute[pixel_row][pixel_col] / focal_length
+                    midas_point_cloud.append((x, -y, -midas_absolute[pixel_row][pixel_col]))
+            # save midas point cloud to cvs file
+            np.savetxt(os.path.join(root, f"midas_point_cloud.csv"), midas_point_cloud, delimiter=",")
 
         """
         # plot midas absolute depth
         plt.figure()
-        midas_absolute_ransac = midas_depth * m + b
-        plt.pcolor(midas_absolute_ransac, cmap="PuBu_r")
+        midas_absolute = midas_depth * m + b
+        plt.pcolor(midas_absolute, cmap="PuBu_r")
         plt.title("MiDaS Depth Scaled According to RANSAC")
         plt.colorbar()
         plt.savefig(os.path.join(root, f"midas_absolute_depth_{tag}.png"))
