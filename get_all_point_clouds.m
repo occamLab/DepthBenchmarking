@@ -20,8 +20,9 @@ for i=1:size(subfolders)
         zlabel('Z');
         legend("\color{white} Lidar", "\color{white} Midas")
         % save figure to image folder and data folder
-        saveas(f, name + "/point_clouds.png");
-        saveas(f, TRIAL_PATH + "/data/point_clouds.png");
+        saveas(f, name + "/point_clouds_" + subfolders(i).name + ".png");
+        saveas(f, TRIAL_PATH + "/data/point_clouds_" + subfolders(i).name + ".png");
+        close(f)
     end
 end
 
