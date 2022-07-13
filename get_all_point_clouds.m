@@ -35,7 +35,3 @@ for i=1:s
     % show progress
     disp("Proccessed " + i + "/" + s(1))
 end
-
-
-
-
