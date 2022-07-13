@@ -7,8 +7,8 @@ subfolders = dir(TRIAL_PATH);
 for i=1:size(subfolders)
     name = TRIAL_PATH + "/" + subfolders(i).name;
     if isfile(name + "/midas_point_cloud.csv") && isfile(name + "/lidar_depth.csv") 
-        lidar_depth = load("lidar_depth.csv");
-        midas_depth = load('midas_point_cloud.csv');
+        lidar_depth = load(name + "lidar_depth.csv");
+        midas_depth = load(name + "midas_point_cloud.csv");
         lidar_point_cloud = pointCloud(lidar_depth);
         midas_point_cloud = pointCloud(midas_depth);
         
