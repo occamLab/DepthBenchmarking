@@ -5,8 +5,8 @@ TRIAL_PATH = "/Users/angrocki/Desktop/DepthData/depth_benchmarking/" + USER + "/
 subfolders = dir(TRIAL_PATH);
 
 for i=1:size(subfolders)
-    name = "/" + subfolders(i).name;
-    if isfile(TRIAL_PATH + name + "/midas_point_cloud.csv") && isfile(TRIAL_PATH + name + "/lidar_depth.csv") 
+    name = TRIAL_PATH + "/" + subfolders(i).name;
+    if isfile(name + "/midas_point_cloud.csv") && isfile(name + "/lidar_depth.csv") 
         lidar_depth = load("lidar_depth.csv");
         midas_depth = load('midas_point_cloud.csv');
         lidar_point_cloud = pointCloud(lidar_depth);
@@ -20,6 +20,8 @@ for i=1:size(subfolders)
         zlabel('Z');
         legend("\color{white} Lidar", "\color{white} Midas")
         % save figure to image folder and data folder
+        saveas(f, name + "/point_clouds.png");
+        saveas(f, TRIAL_PATH + "/data/point_clouds.png");
     end
 end
 
