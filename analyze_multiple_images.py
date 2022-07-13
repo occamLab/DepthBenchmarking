@@ -15,12 +15,12 @@ from scipy.stats import spearmanr
 from utils import read_pfm
 
 USER = "HccdFYqmqETaJltQbAe19bnyk2e2"
-TRIAL = "3F2B13D6-443F-4B5B-9CCD-2DB0AB887296"
-TRIAL_PATH = "/Users/angrocki/Desktop/DepthData/depth_benchmarking/" + \
+TRIAL = "60CFF006-4341-4AA6-92E9-58B7B9FF76F0"
+TRIAL_PATH = "/Users/occamlab/Documents/DepthData/depth_benchmarking/" + \
     USER + "/" + TRIAL
 
-MIDAS_INPUT_PATH = "/Users/angrocki/Desktop/SummerResearch/DepthBenchmarking/input"
-MIDAS_OUTPUT_PATH = "/Users/angrocki/Desktop/SummerResearch/DepthBenchmarking/output"
+MIDAS_INPUT_PATH = "/Users/occamlab/Documents/ARPointCloud/input"
+MIDAS_OUTPUT_PATH = "/Users/occamlab/Documents/ARPointCloud/output"
 
 # use: large, hybrid, phone, old
 # make sure to also change the weight file in the ./weights directory
@@ -294,7 +294,7 @@ for root, dirs, files in os.walk(TRIAL_PATH):
             valid_midas_at_fp = midas_depths_at_feature_points[~np.isnan(midas_depths_at_feature_points)]
             A = np.vstack([valid_midas_at_fp.ravel(), np.ones(valid_midas_at_fp.size)]).T
 
-            ransac = RANSACRegressor(max_trials=150)
+            ransac = RANSACRegressor(max_trials=200)
             ransac.fit(A, ar_depths[~np.isnan(midas_depths_at_feature_points)].ravel())
             ransac_prediction = ransac.predict(A)
 

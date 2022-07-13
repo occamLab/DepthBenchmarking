@@ -215,7 +215,7 @@ for i in range(ar_depths.size):
 valid_midas_at_fp = midas_depths_at_feature_points[~np.isnan(midas_depths_at_feature_points)]
 A = np.vstack([valid_midas_at_fp.ravel(), np.ones(valid_midas_at_fp.size)]).T
 
-ransac = RANSACRegressor(max_trials=150)
+ransac = RANSACRegressor(max_trials=200)
 ransac.fit(A, ar_depths[~np.isnan(midas_depths_at_feature_points)].ravel())
 ransac_prediction = ransac.predict(A)
 
