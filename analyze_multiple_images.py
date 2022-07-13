@@ -15,7 +15,7 @@ from scipy.stats import spearmanr
 from utils import read_pfm
 
 USER = "HccdFYqmqETaJltQbAe19bnyk2e2"
-TRIAL = "60CFF006-4341-4AA6-92E9-58B7B9FF76F0"
+TRIAL = "6CCBDFF7-057E-4FB6-A00F-98E659CE5A88"
 TRIAL_PATH = "/Users/occamlab/Documents/DepthData/depth_benchmarking/" + \
     USER + "/" + TRIAL
 
@@ -26,7 +26,7 @@ MIDAS_OUTPUT_PATH = "/Users/occamlab/Documents/ARPointCloud/output"
 # make sure to also change the weight file in the ./weights directory
 WEIGHT_USED = "phone"
 
-RUN_MIDAS = True
+RUN_MIDAS = False
 
 # BEFORE RUNNING, MAKE SURE ALL PATHS AND FILE REFERENCES ARE CORRECT
 
@@ -170,7 +170,7 @@ for root, dirs, files in os.walk(TRIAL_PATH):
         lidar_confidence_at_feature_points = np.array(lidar_confidence_at_feature_points)
 
         # remove more outliers
-        if True in np.isnan(midas_depth) and midas_depths_at_feature_points.size > 0:
+        if midas_depths_at_feature_points.size > 0:
             midas_depth[midas_depth>=2*max(midas_depths_at_feature_points)] = np.nan
             
         # save the image marked with feature points
@@ -294,7 +294,7 @@ for root, dirs, files in os.walk(TRIAL_PATH):
             valid_midas_at_fp = midas_depths_at_feature_points[~np.isnan(midas_depths_at_feature_points)]
             A = np.vstack([valid_midas_at_fp.ravel(), np.ones(valid_midas_at_fp.size)]).T
 
-            ransac = RANSACRegressor(max_trials=200)
+            ransac = RANSACRegressor(max_trials=300)
             ransac.fit(A, ar_depths[~np.isnan(midas_depths_at_feature_points)].ravel())
             ransac_prediction = ransac.predict(A)
 
@@ -321,9 +321,11 @@ for root, dirs, files in os.walk(TRIAL_PATH):
                 for pixel_col in range(midas_absolute.shape[1]):
                     x = (pixel_col * 7.5 + 3.75 - offset_x - 0.5) * midas_absolute[pixel_row][pixel_col] / focal_length
                     y = (pixel_row * 7.5 + 3.75 - offset_y - 0.5) * midas_absolute[pixel_row][pixel_col] / focal_length
-                    midas_point_cloud.append((x, -y, -midas_absolute[pixel_row][pixel_col]))
+                    if midas_absolute[pixel_row][pixel_col] < 20:
+                        midas_point_cloud.append((x, -y, -midas_absolute[pixel_row][pixel_col]))
             # save midas point cloud to cvs file
-            np.savetxt(os.path.join(root, f"midas_point_cloud.csv"), midas_point_cloud, delimiter=",")
+            if m > 0:
+                np.savetxt(os.path.join(root, f"midas_point_cloud.csv"), midas_point_cloud, delimiter=",")
 
         """
         # plot midas absolute depth

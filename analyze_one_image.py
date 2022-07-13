@@ -117,7 +117,7 @@ lidar_confidence_at_feature_points = np.array(lidar_confidence_at_feature_points
 # draw circles on the input image
 cv.imwrite("output/featurepoints.jpg", frame)
 
-if True in np.isnan(midas_depth):
+if midas_depths_at_feature_points.size > 0:
     midas_depth[midas_depth>=2*max(midas_depths_at_feature_points)] = np.nan
 
 # scale the MiDaS output to the size of the LiDAR depth data
@@ -215,7 +215,7 @@ for i in range(ar_depths.size):
 valid_midas_at_fp = midas_depths_at_feature_points[~np.isnan(midas_depths_at_feature_points)]
 A = np.vstack([valid_midas_at_fp.ravel(), np.ones(valid_midas_at_fp.size)]).T
 
-ransac = RANSACRegressor(max_trials=200)
+ransac = RANSACRegressor(max_trials=300)
 ransac.fit(A, ar_depths[~np.isnan(midas_depths_at_feature_points)].ravel())
 ransac_prediction = ransac.predict(A)
 
@@ -267,7 +267,8 @@ for pixel_row in range(midas_absolute.shape[0]):
     for pixel_col in range(midas_absolute.shape[1]):
         x = (pixel_col * 7.5 + 3.75 - offset_x - 0.5) * midas_absolute[pixel_row][pixel_col] / focal_length
         y = (pixel_row * 7.5 + 3.75 - offset_y - 0.5) * midas_absolute[pixel_row][pixel_col] / focal_length
-        midas_point_cloud.append((x, -y, -midas_absolute[pixel_row][pixel_col]))
+        if midas_absolute[pixel_row][pixel_col] < 20:
+            midas_point_cloud.append((x, -y, -midas_absolute[pixel_row][pixel_col]))
 
 pcd = o3d.geometry.PointCloud()
 point_cloud = np.asarray(midas_point_cloud)
