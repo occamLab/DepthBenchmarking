@@ -151,7 +151,7 @@ class ViewController: UIViewController {
 extension ViewController: ARSessionDelegate {
     func session(_ session: ARSession, didUpdate frame: ARFrame) {
         ARDataLogger.ARLogger.shared.session(session, didUpdate: frame)
-        if -lastFrameUploadTime.timeIntervalSinceNow > 2 {
+        if -lastFrameUploadTime.timeIntervalSinceNow > 0.2 {
             lastFrameUploadTime = Date()
             ARDataLogger.ARLogger.shared.log(frame: frame, withType: "depth_benchmarking", withMeshLoggingBehavior: .none)
         }
