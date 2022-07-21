@@ -1,22 +1,36 @@
+close all
+
 % Needs to be in the same folder as the files
 % Update CSV and JSON files before running script
 lidar_depth = load("lidar_depth.csv");
-midas_depth = load('midas_point_cloud.csv');
+midas_depth = load("midas_point_cloud.csv");
 lidar_point_cloud = pointCloud(lidar_depth);
 midas_point_cloud = pointCloud(midas_depth);
+
 %Load JSON data
-fname = 'framemetadata.json'; 
-fid = fopen(fname); 
-raw = fread(fid,inf); 
-str = char(raw'); 
-fclose(fid); 
+fname = 'framemetadata.json';
+fid = fopen(fname);
+raw = fread(fid,inf);
+str = char(raw');
+fclose(fid);
 val = jsondecode(str);
 pose = reshape(getfield(val, "pose"), [4,4]);
+lidar_confidence = reshape(reshape(getfield(val, "confData"), [256, 192])', [49152, 1]);
 
 % Plot Lidar point cloud
 figure
 pcshow(lidar_point_cloud)
 title("Lidar Point Cloud")
+xlabel("X");
+ylabel("Y");
+zlabel("Z");
+
+% Plot high confidence Lidar point cloud
+lidar_depth = lidar_depth(lidar_confidence == 2, :);
+figure
+pcshow(pointCloud(lidar_depth))
+title("High Confidence Lidar Point Cloud")
+colormap(winter)
 xlabel("X");
 ylabel("Y");
 zlabel("Z");
@@ -55,7 +69,7 @@ filtered_lidar = filtered_lidar(filtered_lidar(:, 3) >= -4, :);
 filtered_lidar = [(filtered_lidar(:,1) - ((max(filtered_lidar(:,1)) + min(filtered_lidar(:,1)))/2)) ...
     (filtered_lidar(:,2) - min(filtered_lidar(:,2))) filtered_lidar(:,3)];
 % Filter x values
-filtered_lidar = filtered_lidar(abs(filtered_lidar(:, 1)) <= 1, :);
+filtered_lidar = filtered_lidar(abs(filtered_lidar(:, 1)) <= 0.5, :);
 % Filter y values
 filtered_lidar = filtered_lidar(filtered_lidar(:, 2) > 0.25, :);
 figure
@@ -66,7 +80,7 @@ xlabel("X");
 ylabel("Y");
 zlabel("Z");
 
-% simple object dectection 
+% Simple object dectection 
 z_min = -1.5;
 z_step = -0.5;
 z_max = z_min + z_step;
