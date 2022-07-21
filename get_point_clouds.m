@@ -41,6 +41,7 @@ legend("\color{white} Lidar", "\color{white} Midas")
 
 % Plot filtered Lidar point cloud
 arraysize = size(lidar_depth);
+
 % Convert LiDAR point cloud to global coordinate frame
 filtered_lidar = pose * [lidar_depth'; ones(1, arraysize(1))];
 % Adjust yaw
@@ -64,6 +65,25 @@ colormap(summer)
 xlabel("X");
 ylabel("Y");
 zlabel("Z");
+
+% simple object dectection 
+z_min = -1.5;
+z_step = -0.5;
+z_max = z_min + z_step;
+path_clear = true;
+while path_clear
+    current_range = filtered_lidar(filtered_lidar(:,3) >= z_max, :);
+    current_range = current_range(current_range(:,3) <= z_min, :);
+    s = size(current_range);
+    points = s(1);
+    if points > 500
+        path_clear = false;
+    else
+        z_min = z_min + z_step;
+        z_max = z_max + z_step;
+    end 
+end
+fprintf("Object detected: %g - %g\n", abs(z_min), abs(z_max));
 
 % Plot filtered MiDaS point cloud
 arraysize = size(midas_depth);
