@@ -81,7 +81,7 @@ ylabel("Y");
 zlabel("Z");
 
 % Simple object dectection 
-z_min = -1.5;
+z_min = 0;
 z_step = -0.5;
 z_max = z_min + z_step;
 path_clear = true;
