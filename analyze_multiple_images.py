@@ -13,9 +13,10 @@ from math import floor
 from scipy.linalg import inv
 from scipy.stats import spearmanr
 from utils import read_pfm
+from Mesh_pb2 import Points
 
 USER = "HccdFYqmqETaJltQbAe19bnyk2e2"
-TRIAL = "6CCBDFF7-057E-4FB6-A00F-98E659CE5A88"
+TRIAL = "F231CF41-FBCE-4C5B-8E88-BD05FEDB7591"
 TRIAL_PATH = "/Users/occamlab/Documents/DepthData/depth_benchmarking/" + \
     USER + "/" + TRIAL
 
@@ -26,7 +27,7 @@ MIDAS_OUTPUT_PATH = "/Users/occamlab/Documents/ARPointCloud/output"
 # make sure to also change the weight file in the ./weights directory
 WEIGHT_USED = "phone"
 
-RUN_MIDAS = False
+RUN_MIDAS = True
 
 # BEFORE RUNNING, MAKE SURE ALL PATHS AND FILE REFERENCES ARE CORRECT
 
@@ -76,7 +77,7 @@ if os.path.exists(TRIAL_PATH) and not os.path.exists(os.path.join(TRIAL_PATH, "d
 
 for root, dirs, files in os.walk(TRIAL_PATH):
     # only run analysis if the JSON file with the metadata is in the folder
-    if "framemetadata.json" in files:
+    if "framemetadata.json" in files and "pointcloud.pb" in files:
         for file in files:
             name, extension = os.path.splitext(file)
 
@@ -96,6 +97,12 @@ for root, dirs, files in os.walk(TRIAL_PATH):
             if file == "framemetadata.json":
                 with open(os.path.join(root, file)) as my_file:
                     data = json.load(my_file)
+            
+            if file == "pointcloud.pb":
+                with open("pointcloud.pb", "rb") as my_file:
+                    cloud = Points()
+                    cloud.ParseFromString(my_file.read())
+
 
         # create a unique ID tag for the current trial and model of MiDaS run
         tag = USER[0:3] + "_" + TRIAL[0:3] + "_" + root[-4:] + \
@@ -105,14 +112,18 @@ for root, dirs, files in os.walk(TRIAL_PATH):
         raw_fp = np.array(data["rawFeaturePoints"])
         if raw_fp.size == 0:
             continue
-        lidar_data = np.array(data["depthData"])
-        lidar_confidence = np.reshape(data["confData"], (192, 256))
         pose = np.reshape(data["pose"], (4,4)).T
         raw_fp = np.hstack((raw_fp, np.ones((raw_fp.shape[0], 1)))).T
         projected_fp = np.around(data["projectedFeaturePoints"]).astype(int)
         focal_length = data["intrinsics"][0]
         offset_x = data["intrinsics"][6]
         offset_y = data["intrinsics"][7]
+
+        lidar_depth = []
+        for point in cloud.points:
+            lidar_depth.append([point.u * point.d, point.v * point.d, point.w * point.d])
+        lidar_depth = np.array(lidar_depth)
+        lidar_confidence = np.reshape(cloud.confidences, (192, 256))
 
         # translate feature points to other coordinate frames
         phone_fp = inv(pose) @ raw_fp
@@ -131,20 +142,14 @@ for root, dirs, files in os.walk(TRIAL_PATH):
         # get the MiDaS depth by taking the reciprocal of the MiDaS output
         midas_depth = np.reciprocal(inverse_depth)
 
-        # scale LiDAR data
-        lidar_depth = []
-        for row in lidar_data:
-            x = row[0] * row[3]
-            y = row[1] * row[3]
-            z = row[2] * row[3]
-            lidar_depth.append([x,y,z])
-        
-        # save LiDAR point cloud to cvs file
+        # save LiDAR point cloud to csv file
         lidar_depth = np.array(lidar_depth)
-        np.savetxt((os.path.join(root, f"lidar_depth.csv")), lidar_depth, delimiter=",")
+        np.savetxt((os.path.join(root, f"lidar_depth.csv")), \
+            np.hstack((lidar_depth, np.ravel(lidar_confidence)[:, None])), \
+            delimiter=",")
 
         # extract depth from the properly scaled LiDAR data
-        lidar_depth = np.reshape(lidar_depth, (256, 192, 3))[:, :, 2].T * -1
+        lidar_depth = np.reshape(lidar_depth, (192, 256, 3))[:, :, 2] * -1
 
         # get MiDaS and LiDAR depth values from pixels with feature points
         midas_depths_at_feature_points = []
@@ -224,45 +229,6 @@ for root, dirs, files in os.walk(TRIAL_PATH):
         plt.savefig(os.path.join(TRIAL_PATH, "data", f"scatter_{tag}.png"))
         plt.close()
 
-        """
-        # create a plot of LiDAR and Midas correlation for only high confidence points 
-        plt.figure()
-        high_conf_lidar = lidar_depth.copy()
-        high_conf_midas = midas_extracted.copy()
-        high_conf_lidar[lidar_confidence<2] = np.nan
-        high_conf_midas[lidar_confidence<2] = np.nan
-
-        high_conf_corr_map = ((high_conf_lidar - np.nanmean(high_conf_lidar)) / \
-            np.nanstd(high_conf_lidar)) * ((high_conf_midas - \
-                np.nanmean(high_conf_midas)) / np.nanstd(high_conf_midas)) / \
-                (np.sum(lidar_confidence, where=2) / 2)
-
-        plt.pcolor(high_conf_corr_map, cmap="RdYlGn")
-        plt.colorbar()
-        plt.title("Corrleation between High Confidence LiDAR and MiDaS")
-        plt.savefig(os.path.join(root, f"high_conf_corr_{tag}.png"))
-        plt.savefig(os.path.join(TRIAL_PATH, "data", f"high_conf_corr_{tag}.png"))
-        plt.close()
-
-        # create a plot of LiDAR and Midas correlation for distances less than five meters 
-        plt.figure()
-        less_five_lidar = lidar_depth.copy()
-        less_five_midas = midas_extracted.copy()
-        less_five_lidar[lidar_depth>5] = np.nan
-        less_five_midas[lidar_depth>5] = np.nan
-
-        less_five_corr_map = ((less_five_lidar - np.nanmean(less_five_lidar)) / \
-            np.nanstd(less_five_lidar)) * ((less_five_midas - \
-                np.nanmean(less_five_midas)) / np.nanstd(less_five_midas)) / \
-                (np.sum(~np.isnan(less_five_lidar)))
-        plt.pcolor(less_five_corr_map, cmap="RdYlGn")
-        plt.colorbar()
-        plt.title("Corrleation between Close Distance LiDAR and MiDaS")
-        plt.savefig(os.path.join(root, f"less_five_corr_{tag}.png"))
-        plt.savefig(os.path.join(TRIAL_PATH, "data", f"less_five_corr_{tag}.png"))
-        plt.close()
-        """
-
         plt.figure()
         plt.scatter(ar_depths, lidar_depths_at_feature_points)
         plt.xlabel("Feature Points")
@@ -273,21 +239,6 @@ for root, dirs, files in os.walk(TRIAL_PATH):
         plt.savefig(os.path.join(root, f"lidar_fp_corr_{tag}.png"))
         plt.savefig(os.path.join(TRIAL_PATH, "data", f"lidar_fp_corr_{tag}.png"))
         plt.close()
-
-        """
-        plt.figure()
-        plt.scatter(ar_depths[lidar_confidence_at_feature_points==2], \
-            lidar_depths_at_feature_points[lidar_confidence_at_feature_points==2], c="g")
-        plt.xlabel("Feature Points")
-        plt.ylabel("High Confidence LiDAR")
-        plt.title("Feature Points vs High Confidence LiDAR")
-        for i in range(ar_depths.size):
-            if lidar_confidence_at_feature_points[i] == 2:
-                plt.annotate(str(i), (ar_depths[i], lidar_depths_at_feature_points[i]))
-        plt.savefig(os.path.join(root, f"high_conf_lidar_fp_corr_{tag}.png"))
-        plt.savefig(os.path.join(TRIAL_PATH, "data", f"high_conf_lidar_fp_corr_{tag}.png"))
-        plt.close()
-        """
 
         # calculate line of best fit
         if len(ar_depths[~np.isnan(midas_depths_at_feature_points)]) > 10:
@@ -326,19 +277,6 @@ for root, dirs, files in os.walk(TRIAL_PATH):
             # save midas point cloud to cvs file
             if m > 0:
                 np.savetxt(os.path.join(root, f"midas_point_cloud.csv"), midas_point_cloud, delimiter=",")
-
-        """
-        # plot midas absolute depth
-        plt.figure()
-        midas_absolute = midas_depth * m + b
-        plt.pcolor(midas_absolute, cmap="PuBu_r")
-        plt.title("MiDaS Depth Scaled According to RANSAC")
-        plt.colorbar()
-        plt.savefig(os.path.join(root, f"midas_absolute_depth_{tag}.png"))
-        plt.savefig(os.path.join(TRIAL_PATH, "data", f"midas_absolute_depth_{tag}.png"))
-        plt.close()
-        print(tag)
-        """
 
 # delete used files
 for file in os.listdir(MIDAS_INPUT_PATH):
