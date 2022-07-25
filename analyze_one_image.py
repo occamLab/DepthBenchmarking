@@ -17,6 +17,7 @@ from sklearn.linear_model import RANSACRegressor
 from scipy.linalg import inv
 from scipy.stats import spearmanr
 from utils import read_pfm
+from Mesh_pb2 import Points
 
 # load captured frame
 frame = cv.imread("input/frame.jpg")
@@ -26,9 +27,19 @@ frame = cv.rotate(frame, cv.ROTATE_90_COUNTERCLOCKWISE)
 with open("framemetadata.json") as my_file:
     data = json.load(my_file)
 
+# load the protobuf file
+with open("pointcloud.pb", "rb") as my_file:
+    cloud = Points()
+    cloud.ParseFromString(my_file.read())
+
+# extract LiDAR data from ptotobuf
+lidar_depth = []
+for point in cloud.points:
+    lidar_depth.append([point.u * point.d, point.v * point.d, point.w * point.d])
+lidar_depth = np.array(lidar_depth)
+lidar_confidence = np.reshape(cloud.confidences, (192, 256))
+
 # extract data from the JSON file
-lidar_data = np.array(data["depthData"])
-lidar_confidence = np.reshape(data["confData"], (192, 256))
 pose = np.reshape(data["pose"], (4,4)).T
 raw_fp = np.array(data["rawFeaturePoints"])
 raw_fp = np.hstack((raw_fp, np.ones((raw_fp.shape[0], 1)))).T
@@ -70,23 +81,14 @@ plt.pcolor(midas_depth, cmap="PuRd_r")
 plt.colorbar()
 plt.title("Visualization of MiDaS Depths")
 
-# scale LiDAR data
-lidar_depth = []
-for row in lidar_data:
-    x = row[0]* row[3]
-    y = row[1] * row[3]
-    z = row[2] * row[3]
-    lidar_depth.append([x,y,z])
-lidar_depth = np.array(lidar_depth)
-
 # plot Lidar Depth
 pcd = o3d.geometry.PointCloud()
 pcd.points = o3d.utility.Vector3dVector(lidar_depth)
 o3d.visualization.draw_geometries([pcd])
-np.savetxt("lidar_depth.csv", lidar_depth, delimiter=",")
+np.savetxt("lidar_depth.csv", np.hstack((lidar_depth, np.ravel(lidar_confidence)[:, None])), delimiter=",")
 
 # extract depth in meters from LiDAR data
-lidar_depth = np.reshape(lidar_depth, (256, 192, 3))[:, :, 2].T * -1
+lidar_depth = np.reshape(lidar_depth, (192, 256, 3))[:, :, 2] * -1
 
 # create a figure representing the LiDAR depths
 plt.figure()
@@ -127,7 +129,7 @@ for i in range(lidar_depth.shape[0]):
         midas_extracted.append(midas_depth[round(3.75 + 7.5 * i), \
             round(3.75 + 7.5 * j)])
 midas_extracted = np.reshape(midas_extracted, (192, 256))
-'''
+"""
 # print out correlations between LiDAR and MiDaS data
 print("Correlation:", \
     np.corrcoef(np.ravel(lidar_depth[~np.isnan(midas_extracted)]), \
@@ -148,7 +150,7 @@ print("ARKit-MiDaS Correlation:", \
     np.ravel(midas_depths_at_feature_points[~np.isnan(midas_depths_at_feature_points)]))[0][1])
 print(spearmanr(np.ravel(ar_depths[~np.isnan(midas_depths_at_feature_points)]), \
     np.ravel(midas_depths_at_feature_points[~np.isnan(midas_depths_at_feature_points)])))
-'''
+"""
 # create a plot comparing LiDAR vs MiDaS and Feature Points vs MiDaS
 plt.figure()
 plt.scatter(lidar_depth, midas_extracted, label="LiDAR", s=0.5, alpha=0.5)
@@ -157,13 +159,13 @@ plt.title("iPhone Depth vs. MiDaS Depth")
 plt.legend()
 plt.xlabel("iPhone Depth")
 plt.ylabel("MiDaS Depth")
-"""
+
 # create a plot of the LiDAR confidence levels
 plt.figure()
 plt.pcolor(lidar_confidence, cmap="RdYlGn")
 plt.colorbar()
 plt.title("LiDAR Confidence")
-
+"""
 plt.figure()
 high_conf_lidar = lidar_depth.copy()
 high_conf_midas = midas_extracted.copy()

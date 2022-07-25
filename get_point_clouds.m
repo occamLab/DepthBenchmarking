@@ -2,7 +2,9 @@ close all
 
 % Needs to be in the same folder as the files
 % Update CSV and JSON files before running script
-lidar_depth = load("lidar_depth.csv");
+lidar_data = load("lidar_depth.csv");
+lidar_depth = lidar_data(:, 1:3);
+lidar_confidence = lidar_data(:, 4);
 midas_depth = load("midas_point_cloud.csv");
 lidar_point_cloud = pointCloud(lidar_depth);
 midas_point_cloud = pointCloud(midas_depth);
@@ -15,8 +17,6 @@ str = char(raw');
 fclose(fid);
 val = jsondecode(str);
 pose = reshape(getfield(val, "pose"), [4,4]);
-lidar_confidence = reshape(reshape(getfield(val, "confData"), [256, 192])', [49152, 1]);
-
 % Plot Lidar point cloud
 figure
 pcshow(lidar_point_cloud)
@@ -85,7 +85,7 @@ z_min = 0;
 z_step = -0.5;
 z_max = z_min + z_step;
 path_clear = true;
-while path_clear
+while path_clear & z_max > -4
     current_range = filtered_lidar(filtered_lidar(:,3) >= z_max, :);
     current_range = current_range(current_range(:,3) <= z_min, :);
     s = size(current_range);
