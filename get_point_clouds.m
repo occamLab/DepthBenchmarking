@@ -76,6 +76,30 @@ xlabel("X");
 ylabel("Y");
 zlabel("Z");
 
+% Histogram Visualization
+w = figure;
+histogram(filtered_lidar(:,3))
+title("Filtered Lidar Depths")
+xlabel("Depth (m)")
+ylabel("Number of Points")
+h = histogram(filtered_lidar(:,3));
+% Retrieve some properties from the histogram
+V = h.Values;
+E = h.BinEdges;
+% Use islocalmax
+L = islocalmax(V);
+% Find the centers of the bins that islocalmax identified as peaks
+left = E(L);
+right = E([false L]);
+center = (left + right)/2;
+% Plot markers on those bins
+hold on
+plot(center, V(L), 'o')
+title("Filter Lidar Depths with Local Maximums")
+xlabel("Depth (m)")
+ylabel("Number of Points")
+legend("points", "local max",'Location', "best")
+
 % Histogram object dectection 
 z_value = filtered_lidar(:,3);
 minZVaule = 0.0;
