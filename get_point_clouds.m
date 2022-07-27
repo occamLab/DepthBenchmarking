@@ -80,67 +80,46 @@ xlabel("X");
 ylabel("Y");
 zlabel("Z");
 
-% Simple object dectection 
-z_min = 0;
-z_step = -0.5;
-z_max = z_min + z_step;
-path_clear = true;
-while path_clear && z_max > -4
-    current_range = filtered_lidar(filtered_lidar(:,3) >= z_max, :);
-    current_range = current_range(current_range(:,3) <= z_min, :);
-    s = size(current_range);
-    points = s(1);
-    if points > 500
-        path_clear = false;
-    else
-        z_min = z_min + z_step;
-        z_max = z_max + z_step;
-    end 
-end
-fprintf("Object detected: %g - %g\n", abs(z_min), abs(z_max));
 % Histogram object dectection 
-figure
-histogram(filtered_lidar(:,3))
-title("Filtered Lidar Depths")
-xlabel("Depth (m)")
-ylabel("Number of Points")
-h = histogram(filtered_lidar(:,3));
-% Retrieve some properties from the histogram
-V = h.Values;
-E = h.BinEdges;
-% Use islocalmax
-L = islocalmax(V);
-% Find the centers of the bins that islocalmax identified as peaks
-left = E(L);
-right = E([false L]);
-center = (left + right)/2;
-% Plot markers on those bins
-hold on
-plot(center, V(L), 'o')
-title("Filter Lidar Depths with Local Maximums")
-xlabel("Depth (m)")
-ylabel("Number of Points")
-legend("points", "local max",'Location', "best")
-% Remove values close in range 
-tol=0.5;
-goodcols=find([1 any(abs(diff(right,1,2))>=tol,1)]);
-objects = right(:,goodcols);
-print(objects)
+z_value = filtered_lidar(:,3);
+minZVaule = 0.0;
+maxZVaule = -4.0;
+step_size = -0.1;
+threshhold = 100;
+binLeftEdge = minZVaule:step_size:maxZVaule;
+hist = [];
+for binEdge = binLeftEdge
+    leftEdge = binEdge;
+    rightEdge = binEdge + step_size;
+    filteredZVaules = z_value(z_value <= leftEdge & z_value > rightEdge);
+    numberInBin = numel(filteredZVaules);
+    hist = [hist,numberInBin];
+end
+localMaxes = [];
+for i = 2:1:numel(binLeftEdge)-1 
+    leftCount = hist(i-1);
+    centerCount = hist(i);
+    rightCount = hist(i+1);
+    if centerCount > leftCount && centerCount > rightCount && centerCount > threshhold
+        localMaxes = [localMaxes,-binLeftEdge(i)];
+    end 
+end 
+localMaxes
 
-% Plot filtered MiDaS point cloud
-arraysize = size(midas_depth);
-filtered_midas = pose * [midas_depth'; ones(1, arraysize(1))];
-filtered_midas = (axang2rotm([0 1 0 -theta]) * filtered_midas(1:3, :))';
-filtered_midas = [filtered_midas(:, 1:2) (filtered_midas(:,3) - max(filtered_midas(:,3)))];
-filtered_midas = filtered_midas(filtered_midas(:, 3) >= -4, :);
-filtered_midas = [(filtered_midas(:,1) - ((max(filtered_midas(:,1)) + min(filtered_midas(:,1)))/2)) ...
-    (filtered_midas(:,2) - min(filtered_midas(:,2))) filtered_midas(:,3)];
-filtered_midas = filtered_midas(abs(filtered_midas(:, 1)) <= 0.5, :);
-filtered_midas = filtered_midas(filtered_midas(:, 2) > 0.25, :);
-figure
-pcshow(pointCloud(filtered_midas));
-title("Filtered Midas Point Cloud")
-colormap(autumn)
-xlabel("X");
-ylabel("Y");
-zlabel("Z"); 
+% % Plot filtered MiDaS point cloud
+% arraysize = size(midas_depth);
+% filtered_midas = pose * [midas_depth'; ones(1, arraysize(1))];
+% filtered_midas = (axang2rotm([0 1 0 -theta]) * filtered_midas(1:3, :))';
+% filtered_midas = [filtered_midas(:, 1:2) (filtered_midas(:,3) - max(filtered_midas(:,3)))];
+% filtered_midas = filtered_midas(filtered_midas(:, 3) >= -4, :);
+% filtered_midas = [(filtered_midas(:,1) - ((max(filtered_midas(:,1)) + min(filtered_midas(:,1)))/2)) ...
+%     (filtered_midas(:,2) - min(filtered_midas(:,2))) filtered_midas(:,3)];
+% filtered_midas = filtered_midas(abs(filtered_midas(:, 1)) <= 0.5, :);
+% filtered_midas = filtered_midas(filtered_midas(:, 2) > 0.25, :);
+% figure
+% pcshow(pointCloud(filtered_midas));
+% title("Filtered Midas Point Cloud")
+% colormap(autumn)
+% xlabel("X");
+% ylabel("Y");
+% zlabel("Z"); 
