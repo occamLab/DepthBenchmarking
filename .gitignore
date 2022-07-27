@@ -1,1 +1,13 @@
 GoogleService-Info.plist
+
+# File types
+*.DS_Store
+*.asv
+*.pt
+
+# Xcode
+/ARPoints/ARPoints.xcodeproj/project.xcworkspace/xcuserdata/
+/ARPoints/ARPoints.xcodeproj/xcuserdata/
+
+# Folders
+/unused_weights/
