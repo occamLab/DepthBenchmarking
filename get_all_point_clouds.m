@@ -1,7 +1,7 @@
 % set paths for trial folder
 USER = "HccdFYqmqETaJltQbAe19bnyk2e2";
-TRIAL = "47D59592-87D3-40FF-B9B4-41DA25DA286E";
-TRIAL_PATH = "/Users/angrocki/Desktop/DepthData/depth_benchmarking/" + USER + "/" + TRIAL;
+TRIAL = "F231CF41-FBCE-4C5B-8E88-BD05FEDB7591";
+TRIAL_PATH = "/Users/occamlab/Documents/DepthData/depth_benchmarking/" + USER + "/" + TRIAL;
 
 % get all of the image folders within the trial path
 subfolders = dir(TRIAL_PATH);
@@ -104,7 +104,6 @@ for i=1:s
         if numel(localMaxes) > 5
             maxSize = int2str(numel(localMaxes));
             txt = maxSize + ":" + num2str(localMaxes(1:5));
-            print(i)
         else
             txt = num2str(localMaxes);
         end
