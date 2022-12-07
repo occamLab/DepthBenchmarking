@@ -82,7 +82,7 @@ histogram(filtered_lidar(:,3))
 title("Filtered Lidar Depths")
 xlabel("Depth (m)")
 ylabel("Number of Points")
-h = histogram(filtered_lidar(:,3));
+h = histogram(filtered_lidar(:,3), 40, "BinLimits", [-4,-0.1]);
 % Retrieve some properties from the histogram
 V = h.Values;
 E = h.BinEdges;

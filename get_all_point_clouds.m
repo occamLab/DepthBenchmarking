@@ -1,6 +1,6 @@
 % set paths for trial folder
 USER = "HccdFYqmqETaJltQbAe19bnyk2e2";
-TRIAL = "F231CF41-FBCE-4C5B-8E88-BD05FEDB7591";
+TRIAL = "54104457-93AF-47AC-8A6A-602C507CA0F9";
 TRIAL_PATH = "/Users/occamlab/Documents/DepthData/depth_benchmarking/" + USER + "/" + TRIAL;
 
 % get all of the image folders within the trial path
@@ -59,7 +59,7 @@ for i=1:s
         title("Filtered Lidar Depths")
         xlabel("Depth (m)")
         ylabel("Number of Points")
-        h = histogram(filtered_lidar(:,3));
+        h = histogram(filtered_lidar(:,3), 40, "BinLimits", [-4,-0.1]);
         % Retrieve some properties from the histogram
         V = h.Values;
         E = h.BinEdges;
